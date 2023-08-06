@@ -49,11 +49,10 @@ var (
 // Config holds data about a given efmrl. It is suitable to check in to source
 // control.
 type Config struct {
-	Efmrl       string `json:"efmrl"`
-	ParentEfmrl string `json:"parent_efmrl,omitempty"`
-	RootDir     string `json:"root_dir"`
-	BaseHost    string `json:"base_host,omitempty"`
-	Insecure    bool   `json:"insecure,omitempty"`
+	Efmrl    string `json:"efmrl"`
+	RootDir  string `json:"root_dir"`
+	BaseHost string `json:"base_host,omitempty"`
+	Insecure bool   `json:"insecure,omitempty"`
 
 	// keep track of which index files to rewrite as their directory names
 	IndexRewrite   []string            `json:"index_rewrite,omitempty"`
@@ -276,14 +275,14 @@ func (cfg *Config) hostPart() string {
 		baseHost = defaultHost
 	}
 
-	switch cfg.ParentEfmrl {
-	case "fe":
-		return baseHost
-	case "":
-		// go to the next switch, below
-	default:
-		return fmt.Sprintf("%v.%v", cfg.ParentEfmrl, baseHost)
-	}
+	//switch cfg.ParentEfmrl {
+	//case "fe":
+	//return baseHost
+	//case "":
+	//// go to the next switch, below
+	//default:
+	//return fmt.Sprintf("%v.%v", cfg.ParentEfmrl, baseHost)
+	//}
 
 	switch cfg.Efmrl {
 	case "fe":
@@ -298,11 +297,7 @@ func (cfg *Config) pathToAPIurl(path string) *url.URL {
 	*url = baseURL
 	url.Host = cfg.hostPart()
 
-	if cfg.ParentEfmrl != "" {
-		url.Path = filepath.Join(api2.DefaultAPIPrefix, "sb", cfg.Efmrl, path)
-	} else {
-		url.Path = filepath.Join(api2.DefaultAPIPrefix, path)
-	}
+	url.Path = filepath.Join(api2.DefaultAPIPrefix, path)
 
 	return url
 }
@@ -324,9 +319,6 @@ func (cfg *Config) pathToURL(prefix, path string) *url.URL {
 	*url = baseURL
 	url.Host = cfg.hostPart()
 	url.Path = path
-	if prefix == "" && cfg.ParentEfmrl != "" {
-		url.Path = filepath.Join(cfg.Efmrl, path)
-	}
 
 	return url
 }
