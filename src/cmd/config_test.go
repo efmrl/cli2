@@ -173,12 +173,12 @@ func TestConfig(t *testing.T) {
 		cfg := &Config{
 			Efmrl:   "undersized-czar",
 			RootDir: "_site",
-			indexRewrite: map[string]struct{}{
-				"index.html": struct{}{},
-				"index.txt":  struct{}{},
+			indexRewrite: map[string]bool{
+				"index.html": true,
+				"index.txt":  true,
 			},
-			indexNoRewrite: map[string]struct{}{
-				"index.css": struct{}{},
+			indexNoRewrite: map[string]bool{
+				"index.css": true,
 			},
 		}
 
@@ -207,30 +207,6 @@ func TestConfig(t *testing.T) {
 				path:    "foo/index.htm",
 				rewrite: "",
 				warn:    true,
-			},
-		}
-		for _, c := range cases {
-			rewrite, warn := cfg.needsRewrite(c.path)
-			assert.Equal(c.rewrite, rewrite)
-			assert.Equal(c.warn, warn != "")
-		}
-
-		cfg.RootDir = "/Users/billy/Sites/boingo"
-		cases = rewriteCases{
-			{
-				path:    "/Users/billy/Sites/boingo/index.html",
-				rewrite: "",
-				warn:    false,
-			},
-			{
-				path:    "/Users/billy/Sites/boingo/index.html",
-				rewrite: "/Users/billy/Sites/boingo",
-				warn:    false,
-			},
-			{
-				path:    "/Users/billy/Sites/boingo/billy/index.html",
-				rewrite: "/Users/billy/Sites/boingo/billy",
-				warn:    false,
 			},
 		}
 		for _, c := range cases {

@@ -67,10 +67,6 @@ type Config struct {
 	// gcfg is a cached value of the global config
 	gcfg GlobalConfig
 
-	// indexFileNames is the list of index file names that the server
-	// searches
-	indexFileNames []string
-
 	// ts is an httptest.Server, to override client behaviors
 	ts *httptest.Server
 }
@@ -323,22 +319,6 @@ func (cfg *Config) pathToURL(prefix, path string) *url.URL {
 	return url
 }
 
-func (cfg *Config) setIndexFileNames() error {
-	client, err := cfg.getClient()
-	if err != nil {
-		return err
-	}
-
-	url := cfg.pathToAPIurl("g/efmrl/indexes")
-	res, err := httpGetJSON(client, url, &cfg.indexFileNames)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-
-	return nil
-}
-
 func (gecfg *GlobalEfmrlConfig) eatCookie(cookie *http.Cookie) bool {
 	switch cookie.Name {
 	case api2.SessionCookieName:
@@ -414,29 +394,17 @@ func getJar(cfg *Config) (*cookiejar.Jar, error) {
 }
 
 // needsRewrite returns two strings: a path-to-rewrite-to, and a warning
-// the 'which' argument specifies whether we are syncing the root directory or
-// the version directory. It must be rewriteRoot or rewriteVersion.
 // the rewrite path will be nonempty if the path should be rewritten
 // the warning will be nonempty if the path is a candidate for rewrtiting, but
 // is unspecified whether or not to rewrite
-//
-// If cfg.indexFileNames is not empty, we never rewrite the path. This is to be
-// compatible with minio.
 func (cfg *Config) needsRewrite(path string) (rewrite, warn string) {
-	if len(cfg.indexFileNames) > 0 {
-		return
-	}
-
-	var root string
-	root = cfg.RootDir
-
 	fname := filepath.Base(path)
 	if cfg.indexNoRewrite[fname] {
 		return
 	}
 
 	dpath := filepath.Dir(path)
-	if dpath == root || dpath == "." {
+	if dpath == cfg.RootDir || dpath == "." {
 		return
 	}
 

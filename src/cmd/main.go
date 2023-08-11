@@ -10,6 +10,8 @@ import (
 // CLIContext is for the CLI stuff
 type CLIContext struct {
 	Context context.Context
+	Debug   bool
+	Quiet   bool
 }
 
 // cli defines the overall CLI
