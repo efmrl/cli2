@@ -1,11 +1,17 @@
 package main
 
 import (
+	"bytes"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"strconv"
+	"strings"
 )
 
 // httpGetJSON handles making a GET call and unmarshalling the result into your
@@ -48,6 +54,46 @@ func unmarshalMost(r *http.Response) ([]byte, map[string]interface{}, error) {
 	return bytes, stuff, nil
 }
 
+func etag(path string, parts int) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	h := md5.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", fmt.Errorf("cannot read for MD5: %w", err)
+	}
+	md5bytes := h.Sum(nil)
+	if parts < 1 {
+		return hex.EncodeToString(md5bytes), nil
+	}
+
+	metaHash := &bytes.Buffer{}
+	metaHash.Write(md5bytes)
+	metaHash = bytes.NewBuffer(metaHash.Bytes())
+	md5Final := md5.New()
+	if _, err := io.Copy(md5Final, metaHash); err != nil {
+		return "", fmt.Errorf("cannot read metahash: %w", err)
+	}
+	finalBytes := md5Final.Sum(nil)
+	return fmt.Sprintf("%x-%v", finalBytes, parts), nil
+}
+
+func etagToMultipart(etag string) int {
+	etParts := strings.Split(etag, "-")
+	if len(etParts) < 2 {
+		return 0
+	}
+	parts, err := strconv.Atoi(etParts[1])
+	if err != nil {
+		return 0
+	}
+
+	return parts
+}
+
 func unmarshalError(r *http.Response) string {
 	unknown := "unknown error"
 	bytes, stuff, err := unmarshalMost(r)
@@ -57,7 +103,7 @@ func unmarshalError(r *http.Response) string {
 
 	unknown = fmt.Sprintf("unknown error: %v", string(bytes))
 
-	errorI, ok := stuff["error"]
+	errorI, ok := stuff["message"]
 	if !ok {
 		return unknown
 	}

@@ -37,12 +37,12 @@ var (
 		Scheme: "https",
 		Host:   defaultHost,
 	}
-	wantsRewrite = map[string]struct{}{
-		"index.html": {},
-		"index.htm":  {},
-		"index.text": {},
-		"index.txt":  {},
-		"index.css":  {},
+	wantsRewrite = map[string]bool{
+		"index.html": true,
+		"index.htm":  true,
+		"index.text": true,
+		"index.txt":  true,
+		"index.css":  true,
 	}
 )
 
@@ -55,10 +55,10 @@ type Config struct {
 	Insecure bool   `json:"insecure,omitempty"`
 
 	// keep track of which index files to rewrite as their directory names
-	IndexRewrite   []string            `json:"index_rewrite,omitempty"`
-	indexRewrite   map[string]struct{} // shadow of IndexRewrite
-	IndexNoRewrite []string            `json:"index_no_rewrite,omitempty"`
-	indexNoRewrite map[string]struct{} // shadow of IndexNoRewrite
+	IndexRewrite   []string        `json:"index_rewrite,omitempty"`
+	indexRewrite   map[string]bool // shadow of IndexRewrite
+	IndexNoRewrite []string        `json:"index_no_rewrite,omitempty"`
+	indexNoRewrite map[string]bool // shadow of IndexNoRewrite
 
 	// skipLen is used by pathToURL: if nonzero, it skips the first skipLen
 	// characters in the path
@@ -120,8 +120,8 @@ func loadConfig() (*Config, error) {
 	}
 
 	cfg := &Config{
-		indexRewrite:   map[string]struct{}{},
-		indexNoRewrite: map[string]struct{}{},
+		indexRewrite:   map[string]bool{},
+		indexNoRewrite: map[string]bool{},
 	}
 	err = json.Unmarshal(cfgBytes, cfg)
 	if err != nil {
@@ -129,10 +129,10 @@ func loadConfig() (*Config, error) {
 	}
 
 	for _, index := range cfg.IndexRewrite {
-		cfg.indexRewrite[index] = struct{}{}
+		cfg.indexRewrite[index] = true
 	}
 	for _, index := range cfg.IndexNoRewrite {
-		cfg.indexNoRewrite[index] = struct{}{}
+		cfg.indexNoRewrite[index] = true
 	}
 
 	return cfg, nil
@@ -422,7 +422,7 @@ func getJar(cfg *Config) (*cookiejar.Jar, error) {
 //
 // If cfg.indexFileNames is not empty, we never rewrite the path. This is to be
 // compatible with minio.
-func (cfg *Config) needsRewrite(path string, which int) (rewrite, warn string) {
+func (cfg *Config) needsRewrite(path string) (rewrite, warn string) {
 	if len(cfg.indexFileNames) > 0 {
 		return
 	}
@@ -431,7 +431,7 @@ func (cfg *Config) needsRewrite(path string, which int) (rewrite, warn string) {
 	root = cfg.RootDir
 
 	fname := filepath.Base(path)
-	if _, ok := cfg.indexNoRewrite[fname]; ok {
+	if cfg.indexNoRewrite[fname] {
 		return
 	}
 
@@ -440,12 +440,12 @@ func (cfg *Config) needsRewrite(path string, which int) (rewrite, warn string) {
 		return
 	}
 
-	if _, ok := cfg.indexRewrite[fname]; ok {
+	if cfg.indexRewrite[fname] {
 		rewrite = dpath
 		return
 	}
 
-	if _, ok := wantsRewrite[fname]; ok {
+	if wantsRewrite[fname] {
 		warn = fmt.Sprintf(
 			`warning: %q is a candidate for a directory index file
 If you want to rewrite %q as %q, do this:
