@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -86,7 +85,7 @@ func makeFake(dirname string, testData []string) error {
 		if err != nil {
 			return err
 		}
-		err = ioutil.WriteFile(fpath, []byte(fpath), 0666)
+		err = os.WriteFile(fpath, []byte(fpath), 0666)
 		if err != nil {
 			return err
 		}
