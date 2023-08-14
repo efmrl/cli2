@@ -26,22 +26,17 @@ const (
 	syncVersion
 )
 
-// SyncCommon holds common parts between "sync" and "version"
-type SyncCommon struct {
-	Parallel int  `default:"1" short:"p" help:"how many files to upload at once"`
-	DryRun   bool `short:"n" help:"show files that would be pushed without pushing them"`
-	Force    bool `short:"f" help:"force sync; don't skip even if file is unchanged"`
+// SyncCmd holds common parts between "sync" and "version"
+type SyncCmd struct {
+	Parallel     int  `default:"1" short:"p" help:"how many files to upload at once"`
+	DryRun       bool `short:"n" help:"show files that would be pushed without pushing them"`
+	Force        bool `short:"f" help:"force sync; don't skip even if file is unchanged"`
+	DeleteOthers bool `short:"D" help:"delete files on server that are not in local directory"`
 
 	rewriteWarn sync.Once
 	quiet       bool             // copied from Context
 	debug       bool             // copied from Context
 	ts          *httptest.Server // copied to Config
-}
-
-// SyncCmd holds the options for the "sync" subcommand
-type SyncCmd struct {
-	SyncCommon
-	DeleteOthers bool `short:"D" help:"delete files on server that are not in local directory"`
 }
 
 type seenMap map[string]bool
@@ -76,7 +71,7 @@ func (sync *SyncCmd) Run(ctx *CLIContext) error {
 	return nil
 }
 
-func (s *SyncCommon) syncDir(
+func (s *SyncCmd) syncDir(
 	cfg *Config,
 	urlPrefix string,
 	seen seenMap,
@@ -305,7 +300,7 @@ func deleteFromSeenMap(
 	return nil
 }
 
-func (s *SyncCommon) put(
+func (s *SyncCmd) put(
 	client *http.Client,
 	srcPath string,
 	fileinfo os.FileInfo,

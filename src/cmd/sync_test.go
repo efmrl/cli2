@@ -56,10 +56,8 @@ func TestSync(t *testing.T) {
 		require.NoError(err)
 
 		sync := SyncCmd{
-			SyncCommon: SyncCommon{
-				Parallel: 3,
-				ts:       ts,
-			},
+			Parallel:     3,
+			ts:           ts,
 			DeleteOthers: true,
 		}
 
