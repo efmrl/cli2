@@ -216,7 +216,7 @@ func TestConfig(t *testing.T) {
 		}
 	})
 
-	t.Run("loadConfig finds efmrl.config.js above", func(t *testing.T) {
+	t.Run("loadConfig finds efmrl2.config.js above", func(t *testing.T) {
 		assert := assert.New(t)
 		require := require.New(t)
 

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"mime"
 	"net/http"
 	"net/http/cookiejar"
@@ -72,7 +71,7 @@ type Config struct {
 }
 
 // GlobalEfmrlConfig holds per-efmrl data that we don't want checked in to
-// source control as efmrl.config.js is
+// source control as efmrl2.config.js is
 type GlobalEfmrlConfig struct {
 	Cookie       string `json:"cookie,omitempty"`
 	StrictCookie string `json:"strict_cookie,omitempty"`
@@ -300,7 +299,6 @@ func (cfg *Config) pathToAPIurl(path string) *url.URL {
 
 func (cfg *Config) pathToURL(prefix, path string) *url.URL {
 	if len(path) < cfg.skipLen {
-		log.Printf("path %q is too short (%v needed)", path, cfg.skipLen)
 		panic("stopping")
 	}
 	if cfg.skipLen > 0 {
