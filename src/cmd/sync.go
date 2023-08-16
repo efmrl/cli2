@@ -280,7 +280,11 @@ func deleteFromSeenMap(
 	cfgCopy = *cfg
 	cfgCopy.skipLen = 0
 
-	for fname := range seen {
+	for fname, p := range seen {
+		if p.Load() == nil {
+			continue
+		}
+
 		url := cfgCopy.pathToURL("", fname)
 		if !ctx.Quiet {
 			fmt.Printf("DELETE %v\n", url)
