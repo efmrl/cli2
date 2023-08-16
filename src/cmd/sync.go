@@ -142,7 +142,7 @@ func (s *SyncCmd) syncDir(
 				}
 
 				if len(path) <= cfg.skipLen {
-					path += "/"
+					path += "//"
 				}
 				p := seen[path[cfg.skipLen:]]
 				if s.debug {
