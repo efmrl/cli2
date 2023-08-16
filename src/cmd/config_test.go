@@ -177,25 +177,17 @@ func TestConfig(t *testing.T) {
 				"index.html": true,
 				"index.txt":  true,
 			},
-			indexNoRewrite: map[string]bool{
-				"index.css": true,
-			},
 		}
 
 		var cases = rewriteCases{
 			{
 				path:    "index.html",
-				rewrite: "",
+				rewrite: ".",
 				warn:    false,
 			},
 			{
 				path:    "foo/index.html",
 				rewrite: "foo",
-				warn:    false,
-			},
-			{
-				path:    "foo/index.css",
-				rewrite: "",
 				warn:    false,
 			},
 			{
@@ -211,7 +203,7 @@ func TestConfig(t *testing.T) {
 		}
 		for _, c := range cases {
 			rewrite, warn := cfg.needsRewrite(c.path)
-			assert.Equal(c.rewrite, rewrite)
+			assert.Equalf(c.rewrite, rewrite, "case %#v", c)
 			assert.Equal(c.warn, warn != "")
 		}
 	})
