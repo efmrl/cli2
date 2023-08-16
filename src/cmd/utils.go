@@ -19,12 +19,13 @@ import (
 func httpGetJSON(
 	client *http.Client,
 	url *url.URL,
-	target interface{},
+	target any,
 ) (*http.Response, error) {
 	res, err := client.Get(url.String())
 	if err != nil {
 		return nil, err
 	}
+	defer res.Body.Close()
 
 	bytes, err := io.ReadAll(res.Body)
 	if err != nil {
@@ -32,6 +33,33 @@ func httpGetJSON(
 	}
 
 	err = json.Unmarshal(bytes, &target)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func postJSON(
+	client *http.Client,
+	url *url.URL,
+	args any,
+	target any,
+) (*http.Response, error) {
+	reqBody, err := json.Marshal(args)
+	if err != nil {
+		return nil, err
+	}
+	res, err := client.Post(url.String(), "application/json", bytes.NewBuffer(reqBody))
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	bod, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(bod, &target)
 	if err != nil {
 		return nil, err
 	}

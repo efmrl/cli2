@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/efmrl/api2"
@@ -32,14 +33,16 @@ type SyncCmd struct {
 	DryRun       bool `short:"n" help:"show files that would be pushed without pushing them"`
 	Force        bool `short:"f" help:"force sync; don't skip even if file is unchanged"`
 	DeleteOthers bool `short:"D" help:"delete files on server that are not in local directory"`
+	Debug        bool `help:"add debugging output"`
 
 	rewriteWarn sync.Once
 	quiet       bool             // copied from Context
+	verbose     bool             // copied from Context
 	debug       bool             // copied from Context
 	ts          *httptest.Server // copied to Config
 }
 
-type seenMap map[string]bool
+type seenMap map[string]*atomic.Pointer[api2.FileInfo]
 
 // Run the "sync" subcommand
 func (sync *SyncCmd) Run(ctx *CLIContext) error {
@@ -49,11 +52,15 @@ func (sync *SyncCmd) Run(ctx *CLIContext) error {
 	}
 	cfg.skipLen = len(cfg.RootDir) + 1 // +1 for '/' separator
 	sync.quiet = ctx.Quiet
-	sync.debug = ctx.Debug
+	ctx.Debug = sync.Debug
+	sync.debug = ctx.Debug || sync.Debug
 	cfg.ts = sync.ts
 	seen := seenMap{}
-	if sync.DeleteOthers {
+	if sync.DeleteOthers || !sync.Force {
 		err = setSeenMap(cfg, ctx, seen)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = sync.syncDir(cfg, "", seen)
@@ -122,7 +129,6 @@ func (s *SyncCmd) syncDir(
 			})
 	})
 
-	seenChan := make(chan string)
 	for i := 0; i < s.Parallel; i++ {
 		g.Go(func() error {
 			client, err := cfg.getClient()
@@ -135,36 +141,32 @@ func (s *SyncCmd) syncDir(
 					path = item.dirPath
 				}
 
-				seenChan <- path
-				url := cfg.pathToURL(urlPrefix, path).String()
-				if !s.Force {
-					res, err := client.Head(url)
-					switch {
-					case err != nil:
-						return err
-					case res.StatusCode == http.StatusNotFound:
-					case res.StatusCode != http.StatusOK:
-						res.Body.Close()
-						return fmt.Errorf(
-							"HEAD %v failed: %v",
-							url,
-							res.Status,
-						)
-					}
-					defer res.Body.Close()
-
-					existingEtag := res.Header.Get("ETag")
-					res = nil
-					multiPart := etagToMultipart(existingEtag)
-					etag, err := etag(item.path, multiPart)
-					if err != nil {
-						return err
-					}
-
-					if existingEtag == etag {
-						continue
+				p := seen[path[cfg.skipLen:]]
+				if s.debug {
+					fmt.Printf("seen %q? %v\n", path[cfg.skipLen:], p != nil)
+				}
+				if p != nil {
+					if !s.Force {
+						fi := p.Load()
+						p.Store(nil)
+						if fi.ETAG[:1] == "\"" {
+							l := len(fi.ETAG)
+							fi.ETAG = fi.ETAG[1 : l-1]
+						}
+						multiPart := etagToMultipart(fi.ETAG)
+						etag, err := etag(item.path, multiPart)
+						if err != nil {
+							return err
+						}
+						if fi.ETAG == etag {
+							continue
+						}
+						if s.debug {
+							fmt.Printf("cloud %q != local %q\n", fi.ETAG, etag)
+						}
 					}
 				}
+				url := cfg.pathToURL(urlPrefix, path).String()
 
 				contentType, err := cfg.contentType(item.path)
 				if err != nil {
@@ -198,26 +200,6 @@ func (s *SyncCmd) syncDir(
 		})
 	}
 
-	go func() {
-		g.Wait()
-		close(seenChan)
-	}()
-
-	for path := range seenChan {
-		if len(path) < cfg.skipLen {
-			// This cannot happen. If it does, delete nothing.
-			for k := range seen {
-				delete(seen, k)
-			}
-			continue
-		}
-
-		if s.debug {
-			fmt.Printf("removing from seen: %q\n", path[cfg.skipLen:])
-		}
-		delete(seen, path[cfg.skipLen:])
-	}
-
 	return g.Wait()
 }
 
@@ -232,26 +214,49 @@ func setSeenMap(
 		return err
 	}
 
-	s3files := &api2.ListFilesRes{}
-	url := cfg.pathToAPIurl("files")
-	res, err := httpGetJSON(client, url, s3files)
-	if err != nil {
-		return fmt.Errorf("cannot list files on server: %w", err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf(
-			"status %v when listing files from server",
-			res.Status,
-		)
-	}
-
-	// make a list of existing files
-	for s3path := range s3files.Files {
-		if ctx.Debug {
-			fmt.Printf("adding to seenMap: %q\n", s3path)
+	continuation := ""
+	for {
+		s3files := &api2.ListFilesRes{}
+		url := cfg.pathToAPIurl("files")
+		req := &api2.ListFilesReq{
+			Continuation: continuation,
 		}
-		seen[s3path] = true
+		res, err := postJSON(client, url, req, s3files)
+		if err != nil {
+			return fmt.Errorf("cannot list files on server: %w", err)
+		}
+		defer res.Body.Close()
+
+		if res.StatusCode != http.StatusOK {
+			return fmt.Errorf(
+				"status %v when listing files from server",
+				res.Status,
+			)
+		}
+
+		// make a list of existing files
+		for pathy, fileInfo := range s3files.Files {
+			if pathy != "" && pathy != "/" {
+				pathy = pathy[1:]
+			}
+			if ctx.Debug {
+				fmt.Printf("adding to seenMap: %q\n", pathy)
+			}
+
+			p := atomic.Pointer[api2.FileInfo]{}
+			p.Store(fileInfo)
+			seen[pathy] = &p
+		}
+
+		if ctx.Debug {
+			fmt.Printf("###\ncontinuing with cont %q\n###\n", s3files.Continuation)
+		}
+		if s3files.Continuation != "" {
+			continuation = s3files.Continuation
+			continue
+		}
+
+		break
 	}
 
 	return nil
