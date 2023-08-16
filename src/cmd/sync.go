@@ -141,6 +141,9 @@ func (s *SyncCmd) syncDir(
 					path = item.dirPath
 				}
 
+				if len(path) <= cfg.skipLen {
+					path += "/"
+				}
 				p := seen[path[cfg.skipLen:]]
 				if s.debug {
 					fmt.Printf("seen %q? %v\n", path[cfg.skipLen:], p != nil)

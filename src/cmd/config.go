@@ -41,7 +41,6 @@ var (
 		"index.htm":  true,
 		"index.text": true,
 		"index.txt":  true,
-		"index.css":  true,
 	}
 )
 
@@ -402,10 +401,6 @@ func (cfg *Config) needsRewrite(path string) (rewrite, warn string) {
 	}
 
 	dpath := filepath.Dir(path)
-	if dpath == cfg.RootDir || dpath == "." {
-		return
-	}
-
 	if cfg.indexRewrite[fname] {
 		rewrite = dpath
 		return
