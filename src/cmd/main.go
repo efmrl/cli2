@@ -16,11 +16,11 @@ type CLIContext struct {
 
 // cli defines the overall CLI
 var cli struct {
-	Hello      HelloCmd   `cmd:"" help:"say hello world"`
-	Init       InitCmd    `cmd:"" help:"init a new working area"`
-	Set        SetCmd     `cmd:"" help:"update settings"`
-	Sync       SyncCmd    `cmd:"" help:"sync working directory to cloud"`
-	NewSession NewSession `cmd:"" help:"newsession stuff"`
+	Hello HelloCmd `cmd:"" help:"say hello world"`
+	Init  InitCmd  `cmd:"" help:"init a new working area"`
+	Set   SetCmd   `cmd:"" help:"update settings"`
+	Sync  SyncCmd  `cmd:"" help:"sync working directory to cloud"`
+	Login Session  `cmd:"" help:"login commands"`
 }
 
 // HelloCmd is for "hello world"

@@ -10,8 +10,8 @@ import (
 	"github.com/efmrl/api2"
 )
 
-type NewSession struct {
-	Get     NewSessionGet `cmd:"" help:"get newsession info"`
+type Session struct {
+	Get     NewSessionGet `cmd:"" help:"get session info"`
 	Declare DeclareCmd    `cmd:"" help:"declare a user"`
 	Confirm ConfirmCmd    `cmd:"" help:"confirm you're the user"`
 }
@@ -37,7 +37,6 @@ func (ns *NewSessionGet) Run(ctx *CLIContext) error {
 	res, err := client.Get(url.String())
 	if err != nil {
 		return fmt.Errorf("cannot connect to server: %w", err)
-		return err
 	}
 
 	defer res.Body.Close()
@@ -112,7 +111,7 @@ func (dc *DeclareCmd) Run(ctx *CLIContext) error {
 
 	if pres.StatusCode != http.StatusOK {
 		stuff := map[string]any{}
-		if dec.Decode(stuff) == nil {
+		if dec.Decode(&stuff) == nil {
 			out, err := json.MarshalIndent(stuff, "", "    ")
 			if err == nil {
 				fmt.Println(string(out))
@@ -133,7 +132,10 @@ func (dc *DeclareCmd) Run(ctx *CLIContext) error {
 	}
 
 	gecfg.eatAllCookies(client, url)
-	cfg.save()
+	err = cfg.save()
+	if err != nil {
+		return err
+	}
 
 	fmt.Println(string(out))
 
@@ -190,7 +192,7 @@ func (cc *ConfirmCmd) Run(ctx *CLIContext) error {
 
 	if pres.StatusCode != http.StatusOK {
 		stuff := map[string]any{}
-		if dec.Decode(stuff) == nil {
+		if dec.Decode(&stuff) == nil {
 			out, err := json.MarshalIndent(stuff, "", "    ")
 			if err == nil {
 				fmt.Println(string(out))
@@ -211,7 +213,10 @@ func (cc *ConfirmCmd) Run(ctx *CLIContext) error {
 	}
 
 	gecfg.eatAllCookies(client, url)
-	cfg.save()
+	err = cfg.save()
+	if err != nil {
+		return err
+	}
 
 	fmt.Println(string(out))
 
