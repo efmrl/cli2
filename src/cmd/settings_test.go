@@ -30,13 +30,10 @@ func TestSettings(t *testing.T) {
 		defer os.Chdir(wd)
 
 		ename := "skunky-joe"
-		parentName := "mari-pair"
 		init := &InitCmd{
-			CommonSet: CommonSet{
-				ParentEfmrl: parentName,
-			},
-			Efmrl: ename,
-			Force: true,
+			CommonSet: CommonSet{},
+			Efmrl:     ename,
+			Force:     true,
 		}
 		err = init.Run(ctx)
 		assert.NoError(err)

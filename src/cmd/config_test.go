@@ -23,7 +23,7 @@ func TestConfig(t *testing.T) {
 		urlStr := cfg.pathToAPIurl("an").String()
 		assert.Equal("https://fire-truck.efmrl.net:8443/.e/an", urlStr)
 
-		cfg.Efmrl = "fe"
+		cfg.Efmrl = "efmrl.net"
 		urlStr = cfg.pathToAPIurl("an").String()
 		assert.Equal("https://efmrl.net:8443/.e/an", urlStr)
 	})
@@ -42,7 +42,7 @@ func TestConfig(t *testing.T) {
 		assert.Equal("https://fire-engine.efmrl.net:8443/a/b", urlStr)
 
 		cfg.BaseHost = ""
-		cfg.Efmrl = "fe"
+		cfg.Efmrl = "efmrl.net"
 		urlStr = cfg.pathToURL("", "dist/index.html").String()
 		assert.Equal("https://efmrl.net:8443/index.html", urlStr)
 

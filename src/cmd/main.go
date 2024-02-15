@@ -20,7 +20,6 @@ var cli struct {
 	Init       InitCmd    `cmd:"" help:"init a new working area"`
 	Set        SetCmd     `cmd:"" help:"update settings"`
 	Sync       SyncCmd    `cmd:"" help:"sync working directory to cloud"`
-	Login      LoginCmd   `cmd:"" help:"login"`
 	NewSession NewSession `cmd:"" help:"newsession stuff"`
 }
 
