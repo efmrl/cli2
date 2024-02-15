@@ -47,7 +47,7 @@ func (ns *NewSessionGet) Run(ctx *CLIContext) error {
 
 	dec := json.NewDecoder(res.Body)
 	nsRes := &api2.NewSessionRes{}
-	err = dec.Decode(res)
+	err = dec.Decode(nsRes)
 	if err != nil {
 		return err
 	}

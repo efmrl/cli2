@@ -331,7 +331,6 @@ func (gecfg *GlobalEfmrlConfig) eatAllCookies(client *http.Client, url *url.URL)
 	for _, cookie := range client.Jar.Cookies(url) {
 		if gecfg.eatCookie(cookie) {
 			success = true
-			fmt.Println("chomp!")
 		}
 	}
 
