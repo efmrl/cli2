@@ -7,12 +7,10 @@ import (
 
 // CommonSet holds option that are common between "set" and "init"
 type CommonSet struct {
-	Rewrite     []string `help:"file names to rewrite to their directories"`
-	NoRewrite   []string `help:"file names not to be rewritten as directories"`
-	ParentEfmrl string   `kong:"optional"`
-	NoParent    bool     `help:"remove any --parent-efmrl"`
-	BaseHost    string   `kong:"hidden"`
-	Insecure    bool     `kong:"hidden"`
+	Rewrite   []string `help:"file names to rewrite to their directories"`
+	NoRewrite []string `help:"file names not to be rewritten as directories"`
+	BaseHost  string   `kong:"hidden"`
+	Insecure  bool     `kong:"hidden"`
 }
 
 // SetCmd holds the options to the "set" subcommand
@@ -68,6 +66,7 @@ func (set *SetCmd) Run(ctx *CLIContext) error {
 	cfg, err := loadConfig()
 	if err != nil {
 		fmt.Fprintf(
+			// XXX is this still true? Don't we find the config?
 			os.Stderr,
 			"you must be in your project's top directory; if you are, use 'init' to create a new config",
 		)

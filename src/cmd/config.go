@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 
 	"github.com/efmrl/api2"
 
@@ -269,17 +270,11 @@ func (cfg *Config) hostPart() string {
 		baseHost = defaultHost
 	}
 
-	//switch cfg.ParentEfmrl {
-	//case "fe":
-	//return baseHost
-	//case "":
-	//// go to the next switch, below
-	//default:
-	//return fmt.Sprintf("%v.%v", cfg.ParentEfmrl, baseHost)
-	//}
-
-	switch cfg.Efmrl {
-	case "fe":
+	hostName := baseHost
+	if c := strings.IndexRune(hostName, ':'); c > 0 {
+		hostName = hostName[:c]
+	}
+	if cfg.Efmrl == hostName {
 		return baseHost
 	}
 
@@ -327,6 +322,20 @@ func (gecfg *GlobalEfmrlConfig) eatCookie(cookie *http.Cookie) bool {
 	}
 
 	return false
+}
+
+func (gecfg *GlobalEfmrlConfig) eatAllCookies(client *http.Client, url *url.URL) bool {
+	var success bool
+	url.Path = ""
+
+	for _, cookie := range client.Jar.Cookies(url) {
+		if gecfg.eatCookie(cookie) {
+			success = true
+			fmt.Println("chomp!")
+		}
+	}
+
+	return success
 }
 
 func (cfg *Config) getClient() (*http.Client, error) {
