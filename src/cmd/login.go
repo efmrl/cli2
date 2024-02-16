@@ -27,7 +27,7 @@ func (ns *NewSessionGet) Run(ctx *CLIContext) error {
 	}
 	cfg.ts = ns.ts
 
-	url := cfg.pathToAPIurl("newsession")
+	url := cfg.pathToAPIurl("session")
 
 	client, err := cfg.getClient()
 	if err != nil {
@@ -79,7 +79,7 @@ func (dc *DeclareCmd) Run(ctx *CLIContext) error {
 		return err
 	}
 
-	url := cfg.pathToAPIurl("newsession")
+	url := cfg.pathToAPIurl("session")
 
 	client, err := cfg.getClient()
 	if err != nil {
@@ -160,7 +160,7 @@ func (cc *ConfirmCmd) Run(ctx *CLIContext) error {
 		return err
 	}
 
-	url := cfg.pathToAPIurl("newsession")
+	url := cfg.pathToAPIurl("session")
 
 	client, err := cfg.getClient()
 	if err != nil {
