@@ -220,15 +220,15 @@ func setSeenMap(
 	continuation := ""
 	for {
 		s3files := &api2.ListFilesRes{}
+		jres := api2.NewResult(s3files)
 		url := cfg.pathToAPIurl("files")
 		req := &api2.ListFilesReq{
 			Continuation: continuation,
 		}
-		res, err := postJSON(client, url, req, s3files)
+		res, err := postJSON(client, url, req, jres)
 		if err != nil {
 			return fmt.Errorf("cannot list files on server: %w", err)
 		}
-		defer res.Body.Close()
 
 		if res.StatusCode != http.StatusOK {
 			return fmt.Errorf(

@@ -45,13 +45,17 @@ func (ns *NewSessionGet) Run(ctx *CLIContext) error {
 	}
 
 	dec := json.NewDecoder(res.Body)
-	nsRes := &api2.NewSessionRes{}
+	nsRes := api2.NewResult(&api2.NewSessionRes{})
 	err = dec.Decode(nsRes)
 	if err != nil {
 		return err
 	}
+	if nsRes.Status != api2.StatusSuccess {
+		err = fmt.Errorf("%v: %v\n", nsRes.Status, nsRes.Message)
+		return err
+	}
 
-	out, err := json.MarshalIndent(nsRes, "", "    ")
+	out, err := json.MarshalIndent(nsRes.Data, "", "    ")
 	if err != nil {
 		return err
 	}
@@ -90,7 +94,7 @@ func (dc *DeclareCmd) Run(ctx *CLIContext) error {
 		CookieOK: true,
 		UserKey:  dc.Who,
 	}
-	res := &api2.NewSessionRes{}
+	res := api2.NewResult(&api2.NewSessionRes{})
 
 	message, err := json.Marshal(req)
 	if err != nil {
@@ -125,8 +129,12 @@ func (dc *DeclareCmd) Run(ctx *CLIContext) error {
 	if err != nil {
 		return err
 	}
+	if res.Status != api2.StatusSuccess {
+		err = fmt.Errorf("%v: %v", res.Status, res.Message)
+		return err
+	}
 
-	out, err := json.MarshalIndent(res, "", "    ")
+	out, err := json.MarshalIndent(res.Data, "", "    ")
 	if err != nil {
 		return err
 	}
@@ -171,7 +179,7 @@ func (cc *ConfirmCmd) Run(ctx *CLIContext) error {
 		CookieOK:   true,
 		UserSecret: cc.Secret,
 	}
-	res := &api2.NewSessionRes{}
+	res := api2.NewResult(&api2.NewSessionRes{})
 
 	message, err := json.Marshal(req)
 	if err != nil {
@@ -206,8 +214,12 @@ func (cc *ConfirmCmd) Run(ctx *CLIContext) error {
 	if err != nil {
 		return err
 	}
+	if res.Status != api2.StatusSuccess {
+		err = fmt.Errorf("%v: %v\n", res.Status, res.Message)
+		return err
+	}
 
-	out, err := json.MarshalIndent(res, "", "    ")
+	out, err := json.MarshalIndent(res.Data, "", "    ")
 	if err != nil {
 		return err
 	}
