@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/http/httptest"
 
 	"github.com/efmrl/api2"
@@ -31,26 +29,10 @@ func (nl *NamesList) Run(ctx *CLIContext) error {
 		return err
 	}
 
-	res, err := client.Get(url.String())
-	if err != nil {
-		err = fmt.Errorf("cannot connect to server: %w", err)
-		return err
-	}
-
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("get list failed: %v", res.Status)
-	}
-
-	dec := json.NewDecoder(res.Body)
 	names := &api2.GetNamesRes{}
 	lnRes := api2.NewResult(names)
-	err = dec.Decode(lnRes)
+	err = httpGetJSON(client, url, lnRes)
 	if err != nil {
-		return err
-	}
-	if lnRes.Status != api2.StatusSuccess {
-		err = fmt.Errorf("%v: %v", lnRes.Status, lnRes.Message)
 		return err
 	}
 

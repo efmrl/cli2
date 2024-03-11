@@ -34,26 +34,9 @@ func (ns *NewSessionGet) Run(ctx *CLIContext) error {
 		return err
 	}
 
-	res, err := client.Get(url.String())
-	if err != nil {
-		return fmt.Errorf("cannot connect to server: %w", err)
-	}
-
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("get newstatus failed: %v", res.Status)
-	}
-
-	dec := json.NewDecoder(res.Body)
-	nsRes := api2.NewResult(&api2.NewSessionRes{})
-	err = dec.Decode(nsRes)
-	if err != nil {
-		return err
-	}
-	if nsRes.Status != api2.StatusSuccess {
-		err = fmt.Errorf("%v: %v\n", nsRes.Status, nsRes.Message)
-		return err
-	}
+	res := &api2.NewSessionRes{}
+	nsRes := api2.NewResult(res)
+	err = httpGetJSON(client, url, nsRes)
 
 	out, err := json.MarshalIndent(nsRes.Data, "", "    ")
 	if err != nil {

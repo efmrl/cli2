@@ -12,6 +12,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/efmrl/api2"
 )
 
 // httpGetJSON handles making a GET call and unmarshalling the result into your
@@ -19,25 +21,30 @@ import (
 func httpGetJSON(
 	client *http.Client,
 	url *url.URL,
-	target any,
-) (*http.Response, error) {
+	target *api2.Response,
+) error {
 	res, err := client.Get(url.String())
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer res.Body.Close()
 
-	bytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed: %v", res.Status)
 	}
 
-	err = json.Unmarshal(bytes, &target)
+	dec := json.NewDecoder(res.Body)
+	err = dec.Decode(&target)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return res, nil
+	if target.Status != api2.StatusSuccess {
+		err = fmt.Errorf("%v: %v", target.Status, target.Message)
+		return err
+	}
+
+	return nil
 }
 
 func postJSON(
