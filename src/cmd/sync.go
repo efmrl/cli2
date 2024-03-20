@@ -34,6 +34,7 @@ type SyncCmd struct {
 	Force        bool `short:"f" help:"force sync; don't skip even if file is unchanged"`
 	DeleteOthers bool `short:"D" help:"delete files on server that are not in local directory"`
 	Debug        bool `help:"add debugging output"`
+	MaxFiles     int  `hidden:""`
 
 	rewriteWarn sync.Once
 	quiet       bool             // copied from Context
@@ -57,7 +58,7 @@ func (sync *SyncCmd) Run(ctx *CLIContext) error {
 	cfg.ts = sync.ts
 	seen := seenMap{}
 	if sync.DeleteOthers || !sync.Force {
-		err = setSeenMap(cfg, ctx, seen)
+		err = setSeenMap(cfg, ctx, seen, sync.MaxFiles)
 		if err != nil {
 			return err
 		}
@@ -210,6 +211,7 @@ func setSeenMap(
 	cfg *Config,
 	ctx *CLIContext,
 	seen seenMap,
+	maxFiles int,
 ) error {
 	// get existing files
 	client, err := cfg.getClient()
@@ -224,6 +226,7 @@ func setSeenMap(
 		url := cfg.pathToAPIurl("files")
 		req := &api2.ListFilesReq{
 			Continuation: continuation,
+			MaxFiles:     maxFiles,
 		}
 		res, err := postJSON(client, url, req, jres)
 		if err != nil {
