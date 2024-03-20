@@ -51,7 +51,7 @@ func postJSON(
 	client *http.Client,
 	url *url.URL,
 	args any,
-	target any,
+	target *api2.Response,
 ) (*http.Response, error) {
 	reqBody, err := json.Marshal(args)
 	if err != nil {
@@ -72,21 +72,6 @@ func postJSON(
 	}
 
 	return res, nil
-}
-
-func unmarshalMost(r *http.Response) ([]byte, map[string]interface{}, error) {
-	bytes, err := io.ReadAll(r.Body)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	stuff := map[string]interface{}{}
-	err = json.Unmarshal(bytes, &stuff)
-	if err != nil {
-		return bytes, nil, err
-	}
-
-	return bytes, stuff, nil
 }
 
 func etag(path string, parts int) (string, error) {
@@ -127,26 +112,4 @@ func etagToMultipart(etag string) int {
 	}
 
 	return parts
-}
-
-func unmarshalError(r *http.Response) string {
-	unknown := "unknown error"
-	bytes, stuff, err := unmarshalMost(r)
-	if err != nil {
-		return unknown
-	}
-
-	unknown = fmt.Sprintf("unknown error: %v", string(bytes))
-
-	errorI, ok := stuff["message"]
-	if !ok {
-		return unknown
-	}
-
-	errorStr, ok := errorI.(string)
-	if !ok {
-		return unknown
-	}
-
-	return errorStr
 }
