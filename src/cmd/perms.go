@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http/httptest"
+	"strings"
 
 	"github.com/efmrl/api2"
 )
@@ -36,9 +37,15 @@ func (pl *PermsListCmd) Run(ctx *CLIContext) error {
 		return err
 	}
 
-	fmt.Printf("%v\n", settings.Perms.Everyone)
-	fmt.Printf("%v\n", settings.Perms.Sessioned)
-	fmt.Printf("%v\n", settings.Perms.Authenticated)
+	fmt.Printf("     everyone: %v\n",
+		strings.Join(settings.Perms.Everyone.SimpleNames(), " "),
+	)
+	fmt.Printf("    sessioned: %v\n",
+		strings.Join(settings.Perms.Sessioned.SimpleNames(), " "),
+	)
+	fmt.Printf("authenticated: %v\n",
+		strings.Join(settings.Perms.Authenticated.SimpleNames(), " "),
+	)
 
 	return nil
 }
