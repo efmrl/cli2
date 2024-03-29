@@ -9,7 +9,8 @@ import (
 )
 
 type PermsCmd struct {
-	List PermsListCmd `cmd:"" help:"list all perms for efmrl"`
+	List   PermsListCmd   `cmd:"" help:"list all perms for efmrl"`
+	Define PermsDefineCmd `cmd:"" help:"define permissions"`
 }
 
 type PermsListCmd struct {
@@ -46,6 +47,19 @@ func (pl *PermsListCmd) Run(ctx *CLIContext) error {
 	fmt.Printf("authenticated: %v\n",
 		strings.Join(settings.Perms.Authenticated.SimpleNames(), " "),
 	)
+
+	return nil
+}
+
+type PermsDefineCmd struct {
+}
+
+func (pd *PermsDefineCmd) Run() error {
+	for _, perm := range api2.PermSimplePerms() {
+		val := api2.PermNameValue[perm]
+		perm = strings.TrimPrefix(perm, "Perm")
+		fmt.Printf("%14v - %v\n", perm, api2.PermShortDefinitions[val])
+	}
 
 	return nil
 }
