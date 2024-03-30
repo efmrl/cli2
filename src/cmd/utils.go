@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
@@ -69,6 +70,46 @@ func postJSON(
 	err = json.Unmarshal(bod, &target)
 	if err != nil {
 		return nil, err
+	}
+
+	return res, nil
+}
+
+func putJSON(
+	ctx context.Context,
+	client *http.Client,
+	url *url.URL,
+	args any,
+	target *api2.Response,
+) (*http.Response, error) {
+	reqBody, err := json.Marshal(args)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(
+		ctx,
+		"PUT",
+		url.String(),
+		bytes.NewBuffer(reqBody),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	if err != nil {
+		return nil, err
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	bod, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	if target != nil {
+		err = json.Unmarshal(bod, &target)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return res, nil
