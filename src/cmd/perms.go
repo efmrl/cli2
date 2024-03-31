@@ -36,7 +36,7 @@ func (pl *PermsListCmd) Run(ctx *CLIContext) error {
 		return err
 	}
 
-	settings := &api2.EfmrlSettings{}
+	settings := &api2.AllPerms{}
 	apiRes := api2.NewResult(settings)
 	err = httpGetJSON(client, url, apiRes)
 	if err != nil {
@@ -44,13 +44,13 @@ func (pl *PermsListCmd) Run(ctx *CLIContext) error {
 	}
 
 	fmt.Printf("     everyone: %v\n",
-		strings.Join(settings.Perms.Everyone.SimpleNames(), " "),
+		strings.Join(settings.Efmrl.Everyone.SimpleNames(), " "),
 	)
 	fmt.Printf("    sessioned: %v\n",
-		strings.Join(settings.Perms.Sessioned.SimpleNames(), " "),
+		strings.Join(settings.Efmrl.Sessioned.SimpleNames(), " "),
 	)
 	fmt.Printf("authenticated: %v\n",
-		strings.Join(settings.Perms.Authenticated.SimpleNames(), " "),
+		strings.Join(settings.Efmrl.Authenticated.SimpleNames(), " "),
 	)
 
 	return nil
@@ -98,8 +98,8 @@ func (pees *PermsEfmrlEveryoneSet) Run(ctx *CLIContext) error {
 		return err
 	}
 
-	settings := &api2.EfmrlSettings{
-		Perms: &api2.SpecialPerms{
+	settings := &api2.AllPerms{
+		Efmrl: &api2.SpecialPerms{
 			Everyone: perms,
 		},
 	}
