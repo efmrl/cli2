@@ -29,7 +29,7 @@ func (pl *PermsListCmd) Run(ctx *CLIContext) error {
 	}
 	cfg.ts = pl.ts
 
-	url := cfg.pathToAPIurl("settings/data")
+	url := cfg.pathToAPIurl("perms/data")
 
 	client, err := cfg.getClient()
 	if err != nil {
@@ -86,7 +86,7 @@ func (pees *PermsEfmrlEveryoneSet) Run(ctx *CLIContext) error {
 	}
 	cfg.ts = pees.ts
 
-	url := cfg.pathToAPIurl("settings/data")
+	url := cfg.pathToAPIurl("perms/data")
 
 	client, err := cfg.getClient()
 	if err != nil {
