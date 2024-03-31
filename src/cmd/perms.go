@@ -36,24 +36,29 @@ func (pl *PermsListCmd) Run(ctx *CLIContext) error {
 		return err
 	}
 
-	settings := &api2.AllPerms{}
-	apiRes := api2.NewResult(settings)
+	allPerms := &api2.AllPerms{}
+	apiRes := api2.NewResult(allPerms)
 	err = httpGetJSON(client, url, apiRes)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("     everyone: %v\n",
-		strings.Join(settings.Efmrl.Everyone.SimpleNames(), " "),
-	)
-	fmt.Printf("    sessioned: %v\n",
-		strings.Join(settings.Efmrl.Sessioned.SimpleNames(), " "),
-	)
-	fmt.Printf("authenticated: %v\n",
-		strings.Join(settings.Efmrl.Authenticated.SimpleNames(), " "),
-	)
+	showSpecialPerms(allPerms.Efmrl)
 
 	return nil
+}
+
+func showSpecialPerms(spec *api2.SpecialPerms) {
+	fmt.Printf("     everyone: %v\n",
+		strings.Join(spec.Everyone.SimpleNames(), " "),
+	)
+	fmt.Printf("    sessioned: %v\n",
+		strings.Join(spec.Sessioned.SimpleNames(), " "),
+	)
+	fmt.Printf("authenticated: %v\n",
+		strings.Join(spec.Authenticated.SimpleNames(), " "),
+	)
+
 }
 
 type PermsDefineCmd struct {
@@ -98,12 +103,12 @@ func (pees *PermsEfmrlEveryoneSet) Run(ctx *CLIContext) error {
 		return err
 	}
 
-	settings := &api2.AllPerms{
+	allPerms := &api2.AllPerms{
 		Efmrl: &api2.SpecialPerms{
 			Everyone: perms,
 		},
 	}
-	res, err := putJSON(ctx.Context, client, url, settings, nil)
+	res, err := patchJSON(ctx.Context, client, url, allPerms, nil)
 	if err != nil {
 		return err
 	}

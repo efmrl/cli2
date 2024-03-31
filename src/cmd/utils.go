@@ -75,7 +75,7 @@ func postJSON(
 	return res, nil
 }
 
-func putJSON(
+func patchJSON(
 	ctx context.Context,
 	client *http.Client,
 	url *url.URL,
@@ -88,7 +88,7 @@ func putJSON(
 	}
 	req, err := http.NewRequestWithContext(
 		ctx,
-		"PUT",
+		"PATCH",
 		url.String(),
 		bytes.NewBuffer(reqBody),
 	)
