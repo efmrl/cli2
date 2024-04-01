@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http/httptest"
+	"os"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/efmrl/api2"
 )
@@ -43,20 +46,57 @@ func (pl *PermsListCmd) Run(ctx *CLIContext) error {
 		return err
 	}
 
-	showSpecialPerms(allPerms.Efmrl)
+	tw := tabwriter.NewWriter(os.Stdout, 0, 4, 4, ' ', tabwriter.AlignRight)
+
+	if allPerms.Efmrl != nil {
+		showSpecialPerms(tw, "efmrl", allPerms.Efmrl)
+	}
+
+	if allPerms.Mounts != nil {
+		for path, mnt := range allPerms.Mounts {
+			showSpecialPerms(tw, path, mnt.Specials)
+		}
+	}
+
+	fmt.Fprintln(tw)
+
+	if allPerms.Owner != nil {
+		fmt.Fprint(
+			tw,
+			"Owner: \t",
+			showPerms(allPerms.Owner.Perms),
+			"\n",
+		)
+	}
+	for _, user := range allPerms.Users {
+		name := user.Name
+		if name == "" {
+			name = user.ID
+		}
+		fmt.Fprint(
+			tw,
+			name,
+			": \t",
+			showPerms(user.Perms),
+			"\n",
+		)
+	}
+
+	tw.Flush()
 
 	return nil
 }
 
-func showSpecialPerms(spec *api2.SpecialPerms) {
-	fmt.Printf("     everyone: %v\n",
-		strings.Join(spec.Everyone.SimpleNames(), " "),
+func showSpecialPerms(out io.Writer, name string, spec *api2.SpecialPerms) {
+	fmt.Fprintln(out, name)
+	fmt.Fprintf(out, "     everyone: \t%v\n",
+		showPerms(spec.Everyone),
 	)
-	fmt.Printf("    sessioned: %v\n",
-		strings.Join(spec.Sessioned.SimpleNames(), " "),
+	fmt.Fprintf(out, "    sessioned: \t%v\n",
+		showPerms(spec.Sessioned),
 	)
-	fmt.Printf("authenticated: %v\n",
-		strings.Join(spec.Authenticated.SimpleNames(), " "),
+	fmt.Fprintf(out, "authenticated: \t%v\n",
+		showPerms(spec.Authenticated),
 	)
 
 }
@@ -119,4 +159,8 @@ func (pees *PermsEfmrlEveryoneSet) Run(ctx *CLIContext) error {
 	fmt.Println("done")
 
 	return nil
+}
+
+func showPerms(perms api2.Perm) string {
+	return strings.Join(perms.SimpleNames(), " ")
 }
