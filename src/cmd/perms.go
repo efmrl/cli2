@@ -64,7 +64,7 @@ func (pl *PermsListCmd) Run(ctx *CLIContext) error {
 		fmt.Fprint(
 			tw,
 			"Owner: \t",
-			showPerms(allPerms.Owner.Perms),
+			showPerms(&allPerms.Owner.Perms),
 			"\n",
 		)
 	}
@@ -77,7 +77,7 @@ func (pl *PermsListCmd) Run(ctx *CLIContext) error {
 			tw,
 			name,
 			": \t",
-			showPerms(user.Perms),
+			showPerms(&user.Perms),
 			"\n",
 		)
 	}
@@ -145,7 +145,7 @@ func (pees *PermsEfmrlEveryoneSet) Run(ctx *CLIContext) error {
 
 	allPerms := &api2.AllPerms{
 		Efmrl: &api2.SpecialPerms{
-			Everyone: perms,
+			Everyone: &perms,
 		},
 	}
 	res, err := patchJSON(ctx.Context, client, url, allPerms, nil)
@@ -161,6 +161,10 @@ func (pees *PermsEfmrlEveryoneSet) Run(ctx *CLIContext) error {
 	return nil
 }
 
-func showPerms(perms api2.Perm) string {
+func showPerms(perms *api2.Perm) string {
+	if perms == nil {
+		return ""
+	}
+
 	return strings.Join(perms.SimpleNames(), " ")
 }
