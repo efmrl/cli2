@@ -37,6 +37,9 @@ func (ns *NewSessionGet) Run(ctx *CLIContext) error {
 	res := &api2.NewSessionRes{}
 	nsRes := api2.NewResult(res)
 	err = httpGetJSON(client, url, nsRes)
+	if err != nil {
+		return err
+	}
 
 	out, err := json.MarshalIndent(nsRes.Data, "", "    ")
 	if err != nil {

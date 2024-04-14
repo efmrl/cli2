@@ -21,6 +21,7 @@ var cli struct {
 	Set   SetCmd   `cmd:"" help:"update settings"`
 	Sync  SyncCmd  `cmd:"" help:"sync working directory to cloud"`
 	Names NamesCmd `cmd:"" help:"efmrl names"`
+	User  UserCmd  `cmd:"" help:"user commands"`
 	Login Session  `cmd:"" help:"login commands"`
 	Perms PermsCmd `cmd:"" help:"permissions commands"`
 }
