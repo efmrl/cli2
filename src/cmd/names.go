@@ -22,7 +22,7 @@ func (nl *NamesList) Run(ctx *CLIContext) error {
 	}
 	cfg.ts = nl.ts
 
-	url := cfg.pathToAPIurl("names/data")
+	url := cfg.pathToAPIurl("names")
 
 	client, err := cfg.getClient()
 	if err != nil {

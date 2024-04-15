@@ -110,7 +110,7 @@ func (uu *UpdateUser) Run(ctx *CLIContext) error {
 }
 
 func getUserPath(cfg *Config, userID string) *url.URL {
-	path := path.Join("users", userID, "data")
+	path := path.Join("users", userID)
 	url := cfg.pathToAPIurl(path)
 	return url
 }

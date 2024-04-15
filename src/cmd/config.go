@@ -286,7 +286,7 @@ func (cfg *Config) pathToAPIurl(path string) *url.URL {
 	*url = baseURL
 	url.Host = cfg.hostPart()
 
-	url.Path = filepath.Join(api2.DefaultAPIPrefix, path)
+	url.Path = filepath.Join(api2.DefaultAPIPrefix, "rest", path)
 
 	return url
 }
