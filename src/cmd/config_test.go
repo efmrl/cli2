@@ -21,11 +21,11 @@ func TestConfig(t *testing.T) {
 		}
 
 		urlStr := cfg.pathToAPIurl("an").String()
-		assert.Equal("https://fire-truck.efmrl.net:8443/.e/an", urlStr)
+		assert.Equal("https://fire-truck.efmrl.net:8443/.e/rest/an", urlStr)
 
 		cfg.Efmrl = "efmrl.net"
 		urlStr = cfg.pathToAPIurl("an").String()
-		assert.Equal("https://efmrl.net:8443/.e/an", urlStr)
+		assert.Equal("https://efmrl.net:8443/.e/rest/an", urlStr)
 	})
 
 	t.Run("pathToURL works", func(t *testing.T) {

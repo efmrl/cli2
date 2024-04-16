@@ -34,7 +34,7 @@ func (ns *NewSessionGet) Run(ctx *CLIContext) error {
 		return err
 	}
 
-	res := &api2.NewSessionRes{}
+	res := &api2.SessionRes{}
 	nsRes := api2.NewResult(res)
 	err = httpGetJSON(client, url, nsRes)
 	if err != nil {
@@ -76,11 +76,11 @@ func (dc *DeclareCmd) Run(ctx *CLIContext) error {
 		return err
 	}
 
-	req := &api2.NewSessionReq{
+	req := &api2.SessionReq{
 		CookieOK: true,
 		UserKey:  dc.Who,
 	}
-	res := api2.NewResult(&api2.NewSessionRes{})
+	res := api2.NewResult(&api2.SessionRes{})
 
 	message, err := json.Marshal(req)
 	if err != nil {
@@ -161,11 +161,11 @@ func (cc *ConfirmCmd) Run(ctx *CLIContext) error {
 		return err
 	}
 
-	req := &api2.NewSessionReq{
+	req := &api2.SessionReq{
 		CookieOK:   true,
 		UserSecret: cc.Secret,
 	}
-	res := api2.NewResult(&api2.NewSessionRes{})
+	res := api2.NewResult(&api2.SessionRes{})
 
 	message, err := json.Marshal(req)
 	if err != nil {

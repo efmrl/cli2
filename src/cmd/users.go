@@ -48,7 +48,7 @@ func (gu *GetUser) Run(ctx *CLIContext) error {
 		return err
 	}
 
-	res := &api2.NewUser{}
+	res := &api2.User{}
 	nuRes := api2.NewResult(res)
 	err = httpGetJSON(client, url, nuRes)
 	if err != nil {
@@ -94,7 +94,7 @@ func (uu *UpdateUser) Run(ctx *CLIContext) error {
 		return err
 	}
 
-	req := &api2.NewUser{
+	req := &api2.User{
 		Name: uu.Name,
 	}
 	resp, err := patchJSON(ctx.Context, client, url, req, nil)
@@ -122,7 +122,7 @@ func getCurrentUserID(cfg *Config) (string, error) {
 		return "", err
 	}
 
-	res := &api2.NewSessionRes{}
+	res := &api2.SessionRes{}
 	nsRes := api2.NewResult(res)
 	err = httpGetJSON(client, url, nsRes)
 	if err != nil {
