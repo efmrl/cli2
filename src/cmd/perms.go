@@ -41,7 +41,7 @@ func (pl *PermsListCmd) Run(ctx *CLIContext) error {
 
 	allPerms := &api2.AllPerms{}
 	apiRes := api2.NewResult(allPerms)
-	err = httpGetJSON(client, url, apiRes)
+	err = getJSON(client, url, apiRes)
 	if err != nil {
 		return err
 	}

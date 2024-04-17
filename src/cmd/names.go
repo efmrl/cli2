@@ -31,7 +31,7 @@ func (nl *NamesList) Run(ctx *CLIContext) error {
 
 	names := &api2.GetNamesRes{}
 	lnRes := api2.NewResult(names)
-	err = httpGetJSON(client, url, lnRes)
+	err = getJSON(client, url, lnRes)
 	if err != nil {
 		return err
 	}

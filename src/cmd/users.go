@@ -50,7 +50,7 @@ func (gu *GetUser) Run(ctx *CLIContext) error {
 
 	res := &api2.User{}
 	nuRes := api2.NewResult(res)
-	err = httpGetJSON(client, url, nuRes)
+	err = getJSON(client, url, nuRes)
 	if err != nil {
 		err = fmt.Errorf("cannot get user data: %w", err)
 		return err
@@ -124,7 +124,7 @@ func getCurrentUserID(cfg *Config) (string, error) {
 
 	res := &api2.SessionRes{}
 	nsRes := api2.NewResult(res)
-	err = httpGetJSON(client, url, nsRes)
+	err = getJSON(client, url, nsRes)
 	if err != nil {
 		err = fmt.Errorf("cannot get session: %w", err)
 		return "", err

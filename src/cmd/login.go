@@ -36,7 +36,7 @@ func (ns *NewSessionGet) Run(ctx *CLIContext) error {
 
 	res := &api2.SessionRes{}
 	nsRes := api2.NewResult(res)
-	err = httpGetJSON(client, url, nsRes)
+	err = getJSON(client, url, nsRes)
 	if err != nil {
 		return err
 	}

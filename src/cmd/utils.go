@@ -17,9 +17,9 @@ import (
 	"github.com/efmrl/api2"
 )
 
-// httpGetJSON handles making a GET call and unmarshalling the result into your
+// getJSON handles making a GET call and unmarshalling the result into your
 // type. The caller is responsible for closing res.Body if there is no err.
-func httpGetJSON(
+func getJSON(
 	client *http.Client,
 	url *url.URL,
 	target *api2.Response,
@@ -62,12 +62,13 @@ func postJSON(
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
-	bod, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
+	if target == nil {
+		return res, nil
 	}
-	err = json.Unmarshal(bod, &target)
+
+	dec := json.NewDecoder(res.Body)
+	defer res.Body.Close()
+	err = dec.Decode(&target)
 	if err != nil {
 		return nil, err
 	}
