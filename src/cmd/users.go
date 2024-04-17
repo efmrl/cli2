@@ -13,6 +13,7 @@ import (
 
 type UserCmd struct {
 	Get    GetUser    `cmd:"" help:"get current user"`
+	Create CreateUser `cmd:"" help:"create new user"`
 	Update UpdateUser `cmd:"" help:"update a user"`
 }
 
@@ -62,6 +63,49 @@ func (gu *GetUser) Run(ctx *CLIContext) error {
 	}
 
 	fmt.Println(string(out))
+
+	return nil
+}
+
+type CreateUser struct {
+	Email string `help:"email address"`
+	Name  string `help:"name for the user"`
+
+	ts *httptest.Server
+}
+
+func (cu *CreateUser) Run(ctx *CLIContext) error {
+	cfg, err := loadConfig()
+	if err != nil {
+		return err
+	}
+	cfg.ts = cu.ts
+
+	req := &api2.PostUserReq{
+		Name: cu.Name,
+		Email: &api2.Email{
+			Address: cu.Email,
+		},
+	}
+	user := &api2.User{}
+
+	client, err := cfg.getClient()
+	if err != nil {
+		return err
+	}
+	url := cfg.pathToAPIurl("/users")
+
+	result := api2.NewResult(user)
+	res, err := postJSON(client, url, req, result)
+	if err != nil {
+		return err
+	}
+	if res.StatusCode >= 400 {
+		err = fmt.Errorf("create failed: %v", result.Message)
+		return err
+	}
+
+	fmt.Printf("new user ID: %q\n", user.ID)
 
 	return nil
 }
