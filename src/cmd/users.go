@@ -136,9 +136,18 @@ func (lu *ListUsers) Run(ctx *CLIContext) error {
 		return err
 	}
 
-	tw := tabwriter.NewWriter(os.Stdout, 0, 4, 4, ' ', tabwriter.AlignRight)
+	tw := tabwriter.NewWriter(os.Stdout, 0, 2, 1, ' ', 0)
 	for _, user := range users.Users {
-		fmt.Fprintf(tw, "%v\t %v\n", user.ID, user.Name)
+		var emAddr string
+		if len(user.Emails) > 0 {
+			emAddr = user.Emails[0].Address
+		}
+		fmt.Fprintf(tw, "%v\t %v\t %v\t\n", user.ID, user.Name, emAddr)
+		if len(user.Emails) > 1 {
+			for _, em := range user.Emails[1:] {
+				fmt.Fprintf(tw, "\t\t %v\t\n", em.Address)
+			}
+		}
 	}
 
 	tw.Flush()
