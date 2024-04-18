@@ -18,6 +18,7 @@ type UserCmd struct {
 	Create CreateUser `cmd:"" help:"create new user"`
 	List   ListUsers  `cmd:"" help:"list users"`
 	Update UpdateUser `cmd:"" help:"update a user"`
+	Delete DeleteUser `cmd:"" help:"delete a user"`
 }
 
 type GetUser struct {
@@ -191,6 +192,46 @@ func (uu *UpdateUser) Run(ctx *CLIContext) error {
 	}
 	if resp.StatusCode != http.StatusOK {
 		err = fmt.Errorf("error on update: %v", resp.Status)
+		return err
+	}
+
+	return nil
+}
+
+type DeleteUser struct {
+	UserID string `opt:"" help:"user ID to be deleted"`
+
+	ts *httptest.Server
+}
+
+func (du *DeleteUser) Run(ctx *CLIContext) error {
+	cfg, err := loadConfig()
+	if err != nil {
+		return err
+	}
+	cfg.ts = du.ts
+
+	url := getUserPath(cfg, du.UserID)
+	client, err := cfg.getClient()
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequestWithContext(
+		ctx.Context,
+		"DELETE",
+		url.String(),
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	if res.StatusCode >= 400 {
+		err = fmt.Errorf("cannot delete user: %v", res.Status)
 		return err
 	}
 
