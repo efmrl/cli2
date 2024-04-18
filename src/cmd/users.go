@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"path"
+	"text/tabwriter"
 
 	"github.com/efmrl/api2"
 )
@@ -14,6 +16,7 @@ import (
 type UserCmd struct {
 	Get    GetUser    `cmd:"" help:"get current user"`
 	Create CreateUser `cmd:"" help:"create new user"`
+	List   ListUsers  `cmd:"" help:"list users"`
 	Update UpdateUser `cmd:"" help:"update a user"`
 }
 
@@ -96,17 +99,49 @@ func (cu *CreateUser) Run(ctx *CLIContext) error {
 	url := cfg.pathToAPIurl("/users")
 
 	result := api2.NewResult(user)
-	res, err := postJSON(client, url, req, result)
+	_, err = postJSON(client, url, req, result)
 	if err != nil {
 		return err
 	}
-	if res.StatusCode >= 400 {
+	if result.Status != api2.StatusSuccess {
 		err = fmt.Errorf("create failed: %v", result.Message)
 		return err
 	}
 
 	fmt.Printf("new user ID: %q\n", user.ID)
 
+	return nil
+}
+
+type ListUsers struct {
+	ts *httptest.Server
+}
+
+func (lu *ListUsers) Run(ctx *CLIContext) error {
+	cfg, err := loadConfig()
+	if err != nil {
+		return err
+	}
+	cfg.ts = lu.ts
+
+	client, err := cfg.getClient()
+	if err != nil {
+		return err
+	}
+	url := cfg.pathToAPIurl("/users")
+
+	users := &api2.ListUsersRes{}
+	err = getJSON(client, url, api2.NewResult(users))
+	if err != nil {
+		return err
+	}
+
+	tw := tabwriter.NewWriter(os.Stdout, 0, 4, 4, ' ', tabwriter.AlignRight)
+	for _, user := range users.Users {
+		fmt.Fprintf(tw, "%v\t %v\n", user.ID, user.Name)
+	}
+
+	tw.Flush()
 	return nil
 }
 

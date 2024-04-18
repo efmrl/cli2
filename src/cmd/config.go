@@ -378,8 +378,7 @@ func getJar(cfg *Config) (*cookiejar.Jar, error) {
 		return jar, nil
 	}
 
-	var ccfg Config
-	ccfg = *cfg
+	var ccfg Config = *cfg
 	ccfg.skipLen = 0
 	u := ccfg.pathToURL("", "")
 	u.Path = ""
