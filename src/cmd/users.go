@@ -72,7 +72,7 @@ func (gu *GetUser) Run(ctx *CLIContext) error {
 }
 
 type CreateUser struct {
-	Email string `help:"email address"`
+	Email string `required:"" help:"email address"`
 	Name  string `help:"name for the user"`
 
 	ts *httptest.Server
