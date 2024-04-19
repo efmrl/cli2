@@ -19,6 +19,7 @@ type UserCmd struct {
 	List   ListUsers  `cmd:"" help:"list users"`
 	Update UpdateUser `cmd:"" help:"update a user"`
 	Delete DeleteUser `cmd:"" help:"delete a user"`
+	Email  AddEmail   `cmd:"" help:"add an email for a user"`
 }
 
 type GetUser struct {
@@ -229,6 +230,55 @@ func (du *DeleteUser) Run(ctx *CLIContext) error {
 	}
 	if res.StatusCode >= 400 {
 		err = fmt.Errorf("cannot delete user: %v", res.Status)
+		return err
+	}
+
+	return nil
+}
+
+type AddEmail struct {
+	UserID string `opt:"" help:"user ID for new email"`
+	Email  string `required:"" help:"email address to add"`
+
+	ts *httptest.Server
+}
+
+func (ae *AddEmail) Run(ctx *CLIContext) error {
+	cfg, err := loadConfig()
+	if err != nil {
+		return err
+	}
+	cfg.ts = ae.ts
+
+	userID := ae.UserID
+	if userID == "" {
+		userID, err = getCurrentUserID(cfg)
+		if err != nil {
+			err = fmt.Errorf("cannot get current user ID: %w", err)
+			return err
+		}
+	}
+	url := getUserPath(cfg, userID)
+	url.Path = path.Join(url.Path, "emails")
+	client, err := cfg.getClient()
+	if err != nil {
+		return err
+	}
+
+	req := &api2.PostEmailReq{
+		Email: &api2.Email{
+			Address: ae.Email,
+		},
+	}
+	email := &api2.Email{}
+	res := api2.NewResult(email)
+
+	_, err = postJSON(client, url, req, res)
+	if err != nil {
+		return err
+	}
+	if res.Status != api2.StatusSuccess {
+		err = fmt.Errorf("cannot add email: %v", res.Message)
 		return err
 	}
 
