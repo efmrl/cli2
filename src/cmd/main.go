@@ -22,6 +22,7 @@ var cli struct {
 	Sync  SyncCmd  `cmd:"" help:"sync working directory to cloud"`
 	Names NamesCmd `cmd:"" help:"efmrl names"`
 	User  UserCmd  `cmd:"" help:"user commands"`
+	Group GroupCmd `cmd:"" help:"group commands"`
 	Login Session  `cmd:"" help:"login commands"`
 	Perms PermsCmd `cmd:"" help:"permissions commands"`
 }

@@ -44,9 +44,6 @@ func (gu *GetUser) Run(ctx *CLIContext) error {
 	}
 
 	url := getUserPath(cfg, userID)
-	if err != nil {
-		return err
-	}
 
 	client, err := cfg.getClient()
 	if err != nil {
