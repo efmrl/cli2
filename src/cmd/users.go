@@ -113,6 +113,8 @@ func (cu *CreateUser) Run(ctx *CLIContext) error {
 }
 
 type ListUsers struct {
+	Verbose bool `short:"v" help:"verbose: list IDs too"`
+
 	ts *httptest.Server
 }
 
@@ -137,14 +139,25 @@ func (lu *ListUsers) Run(ctx *CLIContext) error {
 
 	tw := tabwriter.NewWriter(os.Stdout, 0, 2, 1, ' ', 0)
 	for _, user := range users.Users {
-		var emAddr string
+		var emAddr, emID string
 		if len(user.Emails) > 0 {
 			emAddr = user.Emails[0].Address
+			emID = user.Emails[0].ID
 		}
-		fmt.Fprintf(tw, "%v\t %v\t %v\t\n", user.ID, user.Name, emAddr)
+		switch {
+		case lu.Verbose:
+			fmt.Fprintf(tw, "%v\t %v\t %v\t %v\t\n", user.ID, user.Name, emAddr, emID)
+		default:
+			fmt.Fprintf(tw, "%v\t %v\t\n", user.Name, emAddr)
+		}
 		if len(user.Emails) > 1 {
 			for _, em := range user.Emails[1:] {
-				fmt.Fprintf(tw, "\t\t %v\t\n", em.Address)
+				switch {
+				case lu.Verbose:
+					fmt.Fprintf(tw, "\t\t %v\t %v\t\n", em.Address, em.ID)
+				default:
+					fmt.Fprintf(tw, "\t %v\t\n", em.Address)
+				}
 			}
 		}
 	}
