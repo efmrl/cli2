@@ -14,12 +14,13 @@ import (
 )
 
 type UserCmd struct {
-	Get    GetUser    `cmd:"" help:"get current user"`
-	Create CreateUser `cmd:"" help:"create new user"`
-	List   ListUsers  `cmd:"" help:"list users"`
-	Update UpdateUser `cmd:"" help:"update a user"`
-	Delete DeleteUser `cmd:"" help:"delete a user"`
-	Email  AddEmail   `cmd:"" help:"add an email for a user"`
+	Get         GetUser     `cmd:"" help:"get current user"`
+	Create      CreateUser  `cmd:"" help:"create new user"`
+	List        ListUsers   `cmd:"" help:"list users"`
+	Update      UpdateUser  `cmd:"" help:"update a user"`
+	Delete      DeleteUser  `cmd:"" help:"delete a user"`
+	Email       AddEmail    `cmd:"" help:"add an email for a user"`
+	EmailDelete DeleteEmail `cmd:"" help:"delete an email"`
 }
 
 type GetUser struct {
@@ -293,6 +294,44 @@ func (ae *AddEmail) Run(ctx *CLIContext) error {
 	if res.Status != api2.StatusSuccess {
 		err = fmt.Errorf("cannot add email: %v", res.Message)
 		return err
+	}
+
+	return nil
+}
+
+type DeleteEmail struct {
+	UserID  string `required:"" help:"user ID for deleting email"`
+	EmailID string `required:"" help:"email ID to delete"`
+
+	ts *httptest.Server
+}
+
+func (de *DeleteEmail) Run(ctx *CLIContext) error {
+	cfg, err := loadConfig()
+	if err != nil {
+		return err
+	}
+	cfg.ts = de.ts
+
+	url := getUserPath(cfg, de.UserID)
+	client, err := cfg.getClient()
+	if err != nil {
+		return err
+	}
+	url.Path = path.Join(url.Path, "emails", de.EmailID)
+
+	req, err := http.NewRequestWithContext(
+		ctx.Context,
+		"DELETE",
+		url.String(),
+		nil,
+	)
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	if res.StatusCode >= 400 {
+		err = fmt.Errorf("cannot delete email: %v", res.Status)
 	}
 
 	return nil
