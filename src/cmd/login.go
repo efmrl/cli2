@@ -28,20 +28,18 @@ func (ns *NewSessionGet) Run(ctx *CLIContext) error {
 	cfg.ts = ns.ts
 
 	url := cfg.pathToAPIurl("session")
-
 	client, err := cfg.getClient()
 	if err != nil {
 		return err
 	}
 
 	res := &api2.SessionRes{}
-	nsRes := api2.NewResult(res)
-	err = getJSON(client, url, nsRes)
+	err = getJSON(client, url, api2.NewResult(res))
 	if err != nil {
 		return err
 	}
 
-	out, err := json.MarshalIndent(nsRes.Data, "", "    ")
+	out, err := json.MarshalIndent(res, "", "    ")
 	if err != nil {
 		return err
 	}

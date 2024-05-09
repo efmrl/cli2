@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -15,6 +17,8 @@ type PermsCmd struct {
 	List   PermsListCmd   `cmd:"" help:"list all perms for efmrl"`
 	Define PermsDefineCmd `cmd:"" help:"define permissions"`
 	Efmrl  PermsEfmrlSubs `cmd:"" help:"commands for efmrl's permissions"`
+
+	GrantAll PermsGrantAll `cmd:"" help:"grant all permissions to the user"`
 }
 
 type PermsEfmrlSubs struct {
@@ -32,7 +36,7 @@ func (pl *PermsListCmd) Run(ctx *CLIContext) error {
 	}
 	cfg.ts = pl.ts
 
-	url := cfg.pathToAPIurl("perms/data")
+	url := cfg.pathToAPIurl("perms")
 
 	client, err := cfg.getClient()
 	if err != nil {
@@ -60,14 +64,6 @@ func (pl *PermsListCmd) Run(ctx *CLIContext) error {
 
 	fmt.Fprintln(tw)
 
-	if allPerms.Owner != nil {
-		fmt.Fprint(
-			tw,
-			"Owner: \t",
-			showPerms(&allPerms.Owner.Perms),
-			"\n",
-		)
-	}
 	for _, user := range allPerms.Users {
 		name := user.Name
 		if name == "" {
@@ -157,6 +153,57 @@ func (pees *PermsEfmrlEveryoneSet) Run(ctx *CLIContext) error {
 	}
 
 	fmt.Println("done")
+
+	return nil
+}
+
+type PermsGrantAll struct {
+	User string `opt:"" help:"user ID to grant; default is self"`
+
+	ts *httptest.Server
+}
+
+func (pgoa *PermsGrantAll) Run(ctx *CLIContext) error {
+	cfg, err := loadConfig()
+	if err != nil {
+		return err
+	}
+	cfg.ts = pgoa.ts
+
+	client, err := cfg.getClient()
+	if err != nil {
+		return err
+	}
+	var url *url.URL
+	userID := pgoa.User
+	if userID == "" {
+		url = cfg.pathToAPIurl("session")
+		ses := &api2.SessionRes{}
+		err = getJSON(client, url, api2.NewResult(ses))
+		if err != nil {
+			err = fmt.Errorf("cannot get login session: %w", err)
+			return err
+		}
+		userID = ses.UserID
+	}
+
+	url = cfg.pathToAPIurl("perms")
+	ap := &api2.AllPerms{
+		Users: map[string]*api2.User{
+			userID: &api2.User{
+				Perms: api2.PermAllDefined,
+			},
+		},
+	}
+	resp, err := patchJSON(ctx.Context, client, url, ap, nil)
+	if err != nil {
+		err = fmt.Errorf("cannot grant permissions: %w", err)
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("cannot grant permissions: %q", resp.Status)
+		return err
+	}
 
 	return nil
 }
