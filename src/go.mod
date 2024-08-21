@@ -1,6 +1,6 @@
 module efmrl.com/efmrl/cli
 
-go 1.22
+go 1.23.0
 
 require (
 	github.com/alecthomas/kong v0.8.0
