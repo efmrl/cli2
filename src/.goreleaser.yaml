@@ -57,8 +57,8 @@ env_files:
   github_token: ~/.config/goreleaser/cli2
 
 brews:
-- name: cli
-  homepage: https://github.com/efmrl/homebrew-efmrl-cli
+- name: efmrl
+  homepage: https://github.com/efmrl/homebrew-cli
   repository:
     owner: efmrl
     name: homebrew-cli
