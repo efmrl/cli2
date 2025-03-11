@@ -58,7 +58,7 @@ env_files:
 
 brews:
 - name: cli
-  homepage: https://github.com/efmrl/homebrew-cli
+  homepage: https://github.com/efmrl/homebrew-efmrl-cli
   repository:
     owner: efmrl
     name: homebrew-cli
