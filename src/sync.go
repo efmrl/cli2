@@ -307,7 +307,7 @@ func deleteFromSeenMap(
 		}
 		defer res.Body.Close()
 
-		if res.StatusCode < 299 {
+		if res.StatusCode > 299 {
 			return fmt.Errorf("status %v when deleting %q", res.Status, fname)
 		}
 	}
