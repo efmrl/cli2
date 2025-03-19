@@ -4,7 +4,7 @@ go 1.24
 
 require (
 	github.com/alecthomas/kong v1.9.0
-	github.com/efmrl/api2 v0.0.0-20250309125451-b00942fb8c40
+	github.com/efmrl/api2 v0.0.0-20250319113346-b5df7f9e86b0
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/net v0.37.0
 	golang.org/x/sync v0.12.0
