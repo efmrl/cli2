@@ -116,6 +116,36 @@ func patchJSON(
 	return res, nil
 }
 
+var message = `
+You need to log in to proceed. Go here:
+
+%v
+
+click on "get token"
+click on "copy"
+type "efmrl login confirm " and paste the token here
+`
+
+func loggedIn(
+	cfg *Config,
+) (string, error) {
+	url := cfg.pathToAPIurl("session")
+	client, err := cfg.getClient()
+	if err != nil {
+		return "", err
+	}
+
+	session := &api2.SessionRes{}
+	err = getJSON(client, url, api2.NewResult(session))
+
+	if err != nil || session.Confirmed == "" {
+		message := fmt.Sprintf(message, cfg.pathToAdminURL("session"))
+		return message, nil
+	}
+
+	return "", nil
+}
+
 func etag(path string, parts int) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {

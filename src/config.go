@@ -291,6 +291,16 @@ func (cfg *Config) pathToAPIurl(path string) *url.URL {
 	return url
 }
 
+func (cfg *Config) pathToAdminURL(path string) *url.URL {
+	url := &url.URL{}
+	*url = baseURL
+	url.Host = cfg.hostPart()
+
+	url.Path = filepath.Join(api2.DefaultAPIPrefix, path)
+
+	return url
+}
+
 func (cfg *Config) pathToURL(prefix, path string) *url.URL {
 	if len(path) < cfg.skipLen {
 		panic("stopping")

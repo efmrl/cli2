@@ -51,6 +51,15 @@ func (sync *SyncCmd) Run(ctx *CLIContext) error {
 	if err != nil {
 		return err
 	}
+	msg, err := loggedIn(cfg)
+	if err != nil {
+		return err
+	}
+	if msg != "" {
+		fmt.Println(msg)
+		return nil
+	}
+
 	cfg.skipLen = len(cfg.RootDir) + 1 // +1 for '/' separator
 	sync.quiet = ctx.Quiet
 	ctx.Debug = sync.Debug
