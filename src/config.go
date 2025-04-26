@@ -427,9 +427,9 @@ func (cfg *Config) needsRewrite(path string) (rewrite, warn string) {
 		warn = fmt.Sprintf(
 			`warning: %q is a candidate for a directory index file
 If you want to rewrite %q as %q, do this:
-    efmrl2 set --rewrite %v
+    efmrl set --rewrite %v
 If you do not want to rewrite %q, do this:
-    efmrl2 set --no-rewrite %v
+    efmrl set --no-rewrite %v
 `, path, path, dpath, fname, path, fname)
 	}
 	return
