@@ -236,6 +236,7 @@ func setSeenMap(
 		req := &api2.ListFilesReq{
 			Continuation: continuation,
 			MaxFiles:     maxFiles,
+			CrossFS:      true,
 		}
 		res, err := postJSON(client, url, req, jres)
 		if err != nil {
