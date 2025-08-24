@@ -21,6 +21,11 @@ import (
 )
 
 const (
+	// currentVersion is the version of the config file that we write. When we
+	// read a config, and the version is less than our current version, we need
+	// to migrate the data. When the version is greater than our current
+	// version, we error out.
+	currentVersion = 0
 	// configName is the name of the config file
 	configName = "efmrl2.config.js"
 	// globalDir is the directory above our global configs.
@@ -48,6 +53,7 @@ var (
 // Config holds data about a given efmrl. It is suitable to check in to source
 // control.
 type Config struct {
+	Version  int    `json:"version,omitempty"`
 	Efmrl    string `json:"efmrl"`
 	RootDir  string `json:"root_dir"`
 	BaseHost string `json:"base_host,omitempty"`
@@ -123,6 +129,14 @@ func loadConfig() (*Config, error) {
 		return nil, fmt.Errorf("cannot parse config: %w", err)
 	}
 
+	if cfg.Version > currentVersion {
+		return nil, fmt.Errorf("config file not understood; upgrade efmrl")
+	}
+	err = cfg.migrate()
+	if err != nil {
+		return nil, err
+	}
+
 	for _, index := range cfg.IndexRewrite {
 		cfg.indexRewrite[index] = true
 	}
@@ -165,6 +179,10 @@ func (cfg *Config) save() error {
 		}
 	}
 
+	return nil
+}
+
+func (cfg *Config) migrate() error {
 	return nil
 }
 

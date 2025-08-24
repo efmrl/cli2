@@ -13,6 +13,26 @@ func TestConfig(t *testing.T) {
 	require.NoError(t, err)
 	defer goBack()
 
+	t.Run("later versions error on load", func(t *testing.T) {
+		assert := assert.New(t)
+		require := require.New(t)
+
+		goBack, err := cdTmp(t)
+		require.NoError(err)
+		defer goBack()
+
+		cfg := &Config{
+			Version: currentVersion + 1,
+			Efmrl:   "https://who-cares.whatever.ugh/",
+		}
+		err = cfg.save()
+		require.NoError(err)
+
+		cfg, err = loadConfig()
+		assert.Error(err)
+		assert.Nil(cfg)
+	})
+
 	t.Run("api url works for efmrl or subefmrl", func(t *testing.T) {
 		assert := assert.New(t)
 
