@@ -405,11 +405,25 @@ func (cfg *Config) pathToURL(prefix, path string) *url.URL {
 		path = filepath.Join(prefix, path)
 	}
 
-	url := &url.URL{}
-	*url = *cfg.canonURL
-	url.Path = path
+	u := &url.URL{}
+	switch {
+	case cfg.canonURL != nil:
+		*u = *cfg.canonURL
+	case cfg.CanonURL != "":
+		err := cfg.prep()
+		if err != nil {
+			return nil
+		}
+		*u = *cfg.canonURL
+	default:
+		u = &url.URL{
+			Scheme: "https",
+			Host:   cfg.hostPart(),
+		}
+	}
+	u.Path = path
 
-	return url
+	return u
 }
 
 func (gecfg *GlobalEfmrlConfig) eatCookie(cookie *http.Cookie) bool {
