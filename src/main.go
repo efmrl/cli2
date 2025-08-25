@@ -30,7 +30,7 @@ var cli struct {
 // HelloCmd is for "hello world"
 type HelloCmd struct{}
 
-// Run says "hello world"
+// Run says "hello world", or something like that.
 func (h *HelloCmd) Run(*CLIContext) error {
 	fmt.Println("Hi buddy.")
 	return nil
@@ -39,11 +39,8 @@ func (h *HelloCmd) Run(*CLIContext) error {
 func main() {
 	ctx := kong.Parse(&cli)
 
-	//cfg, err := config.ParseConfig()
-	//ctx.FatalIfErrorf(err, "cannot parse config")
 	context := &CLIContext{
 		Context: context.Background(),
-		//Config:  cfg,
 	}
 
 	err := ctx.Run(context)

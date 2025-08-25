@@ -153,7 +153,6 @@ func (cc *ConfirmCmd) Run(ctx *CLIContext) error {
 	}
 
 	url := cfg.pathToAPIurl("session")
-
 	client, err := cfg.getClient()
 	if err != nil {
 		return err
@@ -199,7 +198,7 @@ func (cc *ConfirmCmd) Run(ctx *CLIContext) error {
 		return err
 	}
 	if res.Status != api2.StatusSuccess {
-		err = fmt.Errorf("%v: %v\n", res.Status, res.Message)
+		err = fmt.Errorf("%v: %v", res.Status, res.Message)
 		return err
 	}
 

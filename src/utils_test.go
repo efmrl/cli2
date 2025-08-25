@@ -1,51 +1,15 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path"
-	"path/filepath"
 	"testing"
 
+	"github.com/efmrl/api2"
 	"github.com/stretchr/testify/assert"
 )
-
-// newTestServer starts a TLS-based httptest.Server. It is the caller's
-// responsibility to Close().
-func newTestServer(h http.Handler) *httptest.Server {
-	ts := httptest.NewUnstartedServer(h)
-	ts.StartTLS()
-	return ts
-}
-
-type fileTreeMap map[string]string // path to etag
-
-func fileTreeToMap(path string) (fileTreeMap, error) {
-	skipLen := len(path) + 1 // +1 for trailing '/'
-	m := fileTreeMap{}
-	err := filepath.Walk(
-		path,
-		func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if !info.Mode().IsRegular() {
-				return nil
-			}
-
-			e, err := etag(path, 0)
-			if err != nil {
-				return err
-			}
-			m[path[skipLen:]] = e
-			return nil
-		})
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
 
 func fakeHome(t *testing.T) (func(), error) {
 	curHome := os.Getenv("HOME")
@@ -77,19 +41,14 @@ func cdTmp(t *testing.T) (func(), error) {
 	}, nil
 }
 
-func makeFake(dirname string, testData []string) error {
-	for _, fpath := range testData {
-		fpath = filepath.Join(dirname, fpath)
-		dirPath := path.Dir(fpath)
-		err := os.MkdirAll(dirPath, 0777)
+func returnJSONSuccessAny(res any) *httptest.Server {
+	f := func(w http.ResponseWriter, r *http.Request) {
+		enc := json.NewEncoder(w)
+		err := enc.Encode(api2.NewSuccessAny(res))
 		if err != nil {
-			return err
-		}
-		err = os.WriteFile(fpath, []byte(fpath), 0666)
-		if err != nil {
-			return err
+			panic(err)
 		}
 	}
 
-	return nil
+	return httptest.NewTLSServer(http.HandlerFunc(f))
 }

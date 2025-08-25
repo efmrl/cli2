@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/efmrl/api2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +24,7 @@ func TestConfig(t *testing.T) {
 
 		cfg := &Config{
 			Version: currentVersion + 1,
-			Efmrl:   "https://who-cares.whatever.ugh/",
+			Efmrl:   "who-cares",
 		}
 		err = cfg.save()
 		require.NoError(err)
@@ -33,19 +34,35 @@ func TestConfig(t *testing.T) {
 		assert.Nil(cfg)
 	})
 
-	t.Run("api url works for efmrl or subefmrl", func(t *testing.T) {
+	t.Run("older versions get migrated on load", func(t *testing.T) {
 		assert := assert.New(t)
+		require := require.New(t)
+
+		goBack, err := cdTmp(t)
+		require.NoError(err)
+		defer goBack()
 
 		cfg := &Config{
-			Efmrl: "fire-truck",
+			Version:  0,
+			Efmrl:    "who-cares",
+			BaseHost: "efmrl.net:8443",
+		}
+		err = cfg.save()
+		require.NoError(err)
+
+		canonURL := "https://google.net/"
+		apiPrefix := ".e"
+		md := &api2.GetEfmrlMDRes{
+			CanonicalURL: canonURL,
+			APIPrefix:    apiPrefix,
 		}
 
-		urlStr := cfg.pathToAPIurl("an").String()
-		assert.Equal("https://fire-truck.efmrl.net:8443/.e/rest/an", urlStr)
+		cfg, err = loadConfigTS(returnJSONSuccessAny(md))
+		assert.NoError(err)
+		require.NotNil(cfg)
 
-		cfg.Efmrl = "efmrl.net"
-		urlStr = cfg.pathToAPIurl("an").String()
-		assert.Equal("https://efmrl.net:8443/.e/rest/an", urlStr)
+		assert.Equal(canonURL, cfg.CanonURL)
+		assert.Equal(apiPrefix, cfg.APIPrefix)
 	})
 
 	t.Run("pathToURL works", func(t *testing.T) {
@@ -53,22 +70,25 @@ func TestConfig(t *testing.T) {
 
 		prefix := "dist"
 		cfg := &Config{
+			Version:  currentVersion,
 			Efmrl:    "fire-engine",
 			BaseHost: "efmrl.net:8443",
+			CanonURL: "https://efmrl-abc-123-horsefeathers.horse.feathers/",
 			skipLen:  len(prefix) + 1,
 		}
+		err = cfg.prep()
 
 		urlStr := cfg.pathToURL("", "dist/a/b").String()
-		assert.Equal("https://fire-engine.efmrl.net:8443/a/b", urlStr)
+		assert.Equal("https://efmrl-abc-123-horsefeathers.horse.feathers/a/b", urlStr)
 
 		cfg.BaseHost = ""
 		cfg.Efmrl = "efmrl.net"
 		urlStr = cfg.pathToURL("", "dist/index.html").String()
-		assert.Equal("https://efmrl.net:8443/index.html", urlStr)
+		assert.Equal("https://efmrl-abc-123-horsefeathers.horse.feathers/index.html", urlStr)
 
 		cfg.Efmrl = "dev"
 		urlStr = cfg.pathToURL("", "dist/index.html").String()
-		assert.Equal("https://dev.efmrl.net:8443/index.html", urlStr)
+		assert.Equal("https://efmrl-abc-123-horsefeathers.horse.feathers/index.html", urlStr)
 	})
 
 	t.Run("global config works", func(t *testing.T) {
@@ -81,7 +101,8 @@ func TestConfig(t *testing.T) {
 
 		efmrl1 := "yan-c-bin-funhouse"
 		cfg := &Config{
-			Efmrl: efmrl1,
+			Version: currentVersion,
+			Efmrl:   efmrl1,
 		}
 		gecfg, err := cfg.getGlobalConfig()
 		assert.NoError(err)
@@ -145,7 +166,9 @@ func TestConfig(t *testing.T) {
 		defer cleanup()
 
 		// getGlobalConfig fails if efmrl not named
-		cfg := &Config{}
+		cfg := &Config{
+			Version: currentVersion,
+		}
 		gecfg, err := cfg.getGlobalConfig()
 		assert.Error(err)
 		assert.Nil(gecfg)
@@ -163,6 +186,7 @@ func TestConfig(t *testing.T) {
 
 		cfg, err = loadConfig()
 		assert.NoError(err)
+		require.NotNil(cfg)
 		gecfg, err = cfg.getGlobalConfig()
 		assert.NoError(err)
 		require.NotNil(gecfg)
@@ -237,7 +261,8 @@ func TestConfig(t *testing.T) {
 		defer goBack()
 
 		cfg := &Config{
-			Efmrl: "monkey-willard",
+			Version: currentVersion,
+			Efmrl:   "monkey-willard",
 		}
 		err = cfg.save()
 		require.NoError(err)

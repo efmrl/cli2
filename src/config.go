@@ -21,11 +21,6 @@ import (
 )
 
 const (
-	// currentVersion is the version of the config file that we write. When we
-	// read a config, and the version is less than our current version, we need
-	// to migrate the data. When the version is greater than our current
-	// version, we error out.
-	currentVersion = 0
 	// configName is the name of the config file
 	configName = "efmrl2.config.js"
 	// globalDir is the directory above our global configs.
@@ -35,6 +30,17 @@ const (
 	// contentTypeBytes is how many bytes max we read
 	// to heuristically determine mime type
 	contentTypeBytes = 512
+)
+
+// versions of the config file
+const (
+	// currentVersion is the version of the config file that we write. When we
+	// read a config, and the version is less than our current version, we need
+	// to migrate the data. When the version is greater than our current
+	// version, we error out.
+	currentVersion = versionCanonURL
+
+	versionCanonURL = iota
 )
 
 var (
@@ -53,11 +59,18 @@ var (
 // Config holds data about a given efmrl. It is suitable to check in to source
 // control.
 type Config struct {
-	Version  int    `json:"version,omitempty"`
-	Efmrl    string `json:"efmrl"`
-	RootDir  string `json:"root_dir"`
-	BaseHost string `json:"base_host,omitempty"`
-	Insecure bool   `json:"insecure,omitempty"`
+	Version int `json:"version,omitempty"`
+
+	Efmrl     string `json:"efmrl"`
+	CanonURL  string `json:"canonURL"`
+	APIPrefix string `json:"apiPrefix"`
+	BaseHost  string `json:"base_host,omitempty"`
+	Insecure  bool   `json:"insecure,omitempty"`
+
+	RootDir string `json:"root_dir"`
+
+	// canonURL is a parsed version of CanonURL
+	canonURL *url.URL
 
 	// keep track of which index files to rewrite as their directory names
 	IndexRewrite   []string        `json:"index_rewrite,omitempty"`
@@ -106,6 +119,13 @@ func findConfig() (string, string, error) {
 }
 
 func loadConfig() (*Config, error) {
+	return loadConfigTS(nil)
+}
+
+// loadConfigTS loads the config file. ts is a test server, and may be nil.
+// pass in a non-nil ts to set the ts value of the config early in the loading
+// phase (e.g. to test migration).
+func loadConfigTS(ts *httptest.Server) (*Config, error) {
 	fpath, dpath, err := findConfig()
 	if err != nil {
 		return nil, err
@@ -123,6 +143,7 @@ func loadConfig() (*Config, error) {
 	cfg := &Config{
 		indexRewrite:   map[string]bool{},
 		indexNoRewrite: map[string]bool{},
+		ts:             ts,
 	}
 	err = json.Unmarshal(cfgBytes, cfg)
 	if err != nil {
@@ -137,6 +158,11 @@ func loadConfig() (*Config, error) {
 		return nil, err
 	}
 
+	err = cfg.prep()
+	if err != nil {
+		return nil, err
+	}
+
 	for _, index := range cfg.IndexRewrite {
 		cfg.indexRewrite[index] = true
 	}
@@ -145,6 +171,17 @@ func loadConfig() (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func (cfg *Config) prep() error {
+	var err error
+	cfg.canonURL, err = url.Parse(cfg.CanonURL)
+	if err != nil {
+		err = fmt.Errorf("cannot parse url %q: %w", cfg.CanonURL, err)
+		return err
+	}
+
+	return nil
 }
 
 func (cfg *Config) save() error {
@@ -183,6 +220,32 @@ func (cfg *Config) save() error {
 }
 
 func (cfg *Config) migrate() error {
+	if cfg.Version < versionCanonURL {
+		if err := cfg.migrateCanonURL(); err != nil {
+			return err
+		}
+		cfg.Version = versionCanonURL
+	}
+
+	return nil
+}
+
+func (cfg *Config) migrateCanonURL() error {
+	client, err := cfg.getClient()
+	if err != nil {
+		return err
+	}
+
+	url := cfg.pathToMDURL()
+	md := &api2.GetEfmrlMDRes{}
+	err = getJSON(client, url, api2.NewResult(md))
+	if err != nil {
+		return err
+	}
+
+	cfg.CanonURL = md.CanonicalURL
+	cfg.APIPrefix = md.APIPrefix
+
 	return nil
 }
 
@@ -299,10 +362,22 @@ func (cfg *Config) hostPart() string {
 	return fmt.Sprintf("%v.%v", cfg.Efmrl, baseHost)
 }
 
+// pathToMDURL is special, because it doesn't depend on the CanonURL to be
+// there. It is used when setting up a new project, when changing efmrls, or
+// when migrating; or, any other time you need to set CanonURL.
+func (cfg *Config) pathToMDURL() *url.URL {
+	url := &url.URL{
+		Scheme: "https",
+		Host:   cfg.hostPart(),
+		Path:   filepath.Join(api2.DefaultAPIPrefix, "rest", "md"),
+	}
+
+	return url
+}
+
 func (cfg *Config) pathToAPIurl(path string) *url.URL {
 	url := &url.URL{}
-	*url = baseURL
-	url.Host = cfg.hostPart()
+	*url = *cfg.canonURL
 
 	url.Path = filepath.Join(api2.DefaultAPIPrefix, "rest", path)
 
@@ -311,8 +386,7 @@ func (cfg *Config) pathToAPIurl(path string) *url.URL {
 
 func (cfg *Config) pathToAdminURL(path string) *url.URL {
 	url := &url.URL{}
-	*url = baseURL
-	url.Host = cfg.hostPart()
+	*url = *cfg.canonURL
 
 	url.Path = filepath.Join(api2.DefaultAPIPrefix, path)
 
@@ -332,8 +406,7 @@ func (cfg *Config) pathToURL(prefix, path string) *url.URL {
 	}
 
 	url := &url.URL{}
-	*url = baseURL
-	url.Host = cfg.hostPart()
+	*url = *cfg.canonURL
 	url.Path = path
 
 	return url
@@ -352,7 +425,10 @@ func (gecfg *GlobalEfmrlConfig) eatCookie(cookie *http.Cookie) bool {
 	return false
 }
 
-func (gecfg *GlobalEfmrlConfig) eatAllCookies(client *http.Client, url *url.URL) bool {
+func (gecfg *GlobalEfmrlConfig) eatAllCookies(
+	client *http.Client,
+	url *url.URL,
+) bool {
 	var success bool
 	url.Path = ""
 
@@ -406,7 +482,7 @@ func getJar(cfg *Config) (*cookiejar.Jar, error) {
 		return jar, nil
 	}
 
-	var ccfg Config = *cfg
+	var ccfg = *cfg
 	ccfg.skipLen = 0
 	u := ccfg.pathToURL("", "")
 	u.Path = ""

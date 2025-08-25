@@ -97,6 +97,7 @@ func (init *InitCmd) Run(ctx *CLIContext) error {
 	}
 
 	cfg := &Config{
+		Version: currentVersion,
 		Efmrl:   init.Efmrl,
 		RootDir: init.RootDir,
 	}
