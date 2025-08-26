@@ -221,7 +221,7 @@ func (cfg *Config) save() error {
 
 func (cfg *Config) migrate() error {
 	if cfg.Version < versionCanonURL {
-		if err := cfg.migrateCanonURL(); err != nil {
+		if err := cfg.getCanonURL(); err != nil {
 			return err
 		}
 		cfg.Version = versionCanonURL
@@ -230,7 +230,7 @@ func (cfg *Config) migrate() error {
 	return nil
 }
 
-func (cfg *Config) migrateCanonURL() error {
+func (cfg *Config) getCanonURL() error {
 	client, err := cfg.getClient()
 	if err != nil {
 		return err

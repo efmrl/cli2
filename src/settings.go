@@ -29,7 +29,7 @@ type InitCmd struct {
 }
 
 // updateConfig updates a config struct with all nonzero members of common
-func (common *CommonSet) updateConfig(cfg *Config) {
+func (common *CommonSet) updateConfig(cfg *Config) error {
 	for _, fname := range common.NoRewrite {
 		delete(cfg.indexRewrite, fname)
 		cfg.indexNoRewrite[fname] = true
@@ -46,10 +46,19 @@ func (common *CommonSet) updateConfig(cfg *Config) {
 	if common.Insecure {
 		cfg.Insecure = true
 	}
+
+	if cfg.CanonURL == "" {
+		err := cfg.getCanonURL()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // updateConfig updates a config struct with all nonzero members of set
-func (set *SetCmd) updateConfig(cfg *Config) {
+func (set *SetCmd) updateConfig(cfg *Config) error {
 	if set.Efmrl != "" {
 		cfg.Efmrl = set.Efmrl
 	}
@@ -58,7 +67,12 @@ func (set *SetCmd) updateConfig(cfg *Config) {
 		cfg.RootDir = set.RootDir
 	}
 
-	set.CommonSet.updateConfig(cfg)
+	err := set.CommonSet.updateConfig(cfg)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Run the "set" subcommand
@@ -73,7 +87,10 @@ func (set *SetCmd) Run(ctx *CLIContext) error {
 		return err
 	}
 
-	set.updateConfig(cfg)
+	err = set.updateConfig(cfg)
+	if err != nil {
+		return err
+	}
 
 	err = cfg.save()
 	if err != nil {
