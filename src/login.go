@@ -62,7 +62,7 @@ func (dc *DeclareCmd) Run(ctx *CLIContext) error {
 	}
 	cfg.ts = dc.ts
 
-	gecfg, err := cfg.getGlobalConfig()
+	gecfg, err := cfg.getOldGlobalConfig()
 	if err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func (cc *ConfirmCmd) Run(ctx *CLIContext) error {
 	}
 	cfg.ts = cc.ts
 
-	gecfg, err := cfg.getGlobalConfig()
+	gecfg, err := cfg.getOldGlobalConfig()
 	if err != nil {
 		return err
 	}

@@ -91,7 +91,7 @@ func TestConfig(t *testing.T) {
 		assert.Equal("https://efmrl-abc-123-horsefeathers.horse.feathers/index.html", urlStr)
 	})
 
-	t.Run("global config works", func(t *testing.T) {
+	t.Run("old global config works", func(t *testing.T) {
 		assert := assert.New(t)
 		require := require.New(t)
 
@@ -104,7 +104,7 @@ func TestConfig(t *testing.T) {
 			Version: currentVersion,
 			Efmrl:   efmrl1,
 		}
-		gecfg, err := cfg.getGlobalConfig()
+		gecfg, err := cfg.getOldGlobalConfig()
 		assert.NoError(err)
 		require.NotNil(gecfg)
 
@@ -119,7 +119,7 @@ func TestConfig(t *testing.T) {
 		cfg, err = loadConfig()
 		assert.NoError(err)
 		require.NotNil(cfg)
-		gecfg, err = cfg.getGlobalConfig()
+		gecfg, err = cfg.getOldGlobalConfig()
 		assert.NoError(err)
 		require.NotNil(gecfg)
 
@@ -131,7 +131,7 @@ func TestConfig(t *testing.T) {
 		cookie2 := "cookie2"
 		strict2 := "strict2"
 		cfg.Efmrl = efmrl2
-		gecfg, err = cfg.getGlobalConfig()
+		gecfg, err = cfg.getOldGlobalConfig()
 		assert.NoError(err)
 		require.NotNil(gecfg)
 		gecfg.Cookie = cookie2
@@ -143,21 +143,21 @@ func TestConfig(t *testing.T) {
 		cfg, err = loadConfig()
 		assert.NoError(err)
 		require.NotNil(cfg)
-		gecfg, err = cfg.getGlobalConfig()
+		gecfg, err = cfg.getOldGlobalConfig()
 		assert.NoError(err)
 		require.NotNil(gecfg)
 		assert.Equal(cookie2, gecfg.Cookie)
 		assert.Equal(strict2, gecfg.StrictCookie)
 
 		cfg.Efmrl = efmrl1
-		gecfg, err = cfg.getGlobalConfig()
+		gecfg, err = cfg.getOldGlobalConfig()
 		assert.NoError(err)
 		require.NotNil(gecfg)
 		assert.Equal(cookie1, gecfg.Cookie)
 		assert.Equal(strict1, gecfg.StrictCookie)
 	})
 
-	t.Run("global config creates iff ENOENT", func(t *testing.T) {
+	t.Run("old global config creates iff ENOENT", func(t *testing.T) {
 		assert := assert.New(t)
 		require := require.New(t)
 
@@ -165,16 +165,16 @@ func TestConfig(t *testing.T) {
 		require.NoError(err)
 		defer cleanup()
 
-		// getGlobalConfig fails if efmrl not named
+		// getOldGlobalConfig fails if efmrl not named
 		cfg := &Config{
 			Version: currentVersion,
 		}
-		gecfg, err := cfg.getGlobalConfig()
+		gecfg, err := cfg.getOldGlobalConfig()
 		assert.Error(err)
 		assert.Nil(gecfg)
 
 		cfg.Efmrl = "snakes-in-a-pit"
-		gecfg, err = cfg.getGlobalConfig()
+		gecfg, err = cfg.getOldGlobalConfig()
 		assert.NoError(err)
 		require.NotNil(gecfg)
 
@@ -187,20 +187,20 @@ func TestConfig(t *testing.T) {
 		cfg, err = loadConfig()
 		assert.NoError(err)
 		require.NotNil(cfg)
-		gecfg, err = cfg.getGlobalConfig()
+		gecfg, err = cfg.getOldGlobalConfig()
 		assert.NoError(err)
 		require.NotNil(gecfg)
 		assert.Equal(cookie, gecfg.Cookie)
 
 		// set mode to zero, so we will get a permission error
-		fpath, err := globalPath()
+		fpath, err := oldGlobalPath()
 		assert.NoError(err)
 		err = os.Chmod(fpath, 0)
 		assert.NoError(err)
 
 		cfg, err = loadConfig()
 		assert.NoError(err)
-		gecfg, err = cfg.getGlobalConfig()
+		gecfg, err = cfg.getOldGlobalConfig()
 		assert.Error(err)
 		assert.Nil(gecfg)
 	})
