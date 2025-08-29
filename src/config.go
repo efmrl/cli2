@@ -23,6 +23,9 @@ import (
 const (
 	// configName is the name of the config file
 	configName = "efmrl2.config.js"
+	// globalConfigName is where the global config file is kept under the user's
+	// home directory.
+	globalConfigName = ".config/efmrl2/global_config.js"
 	// oldGlobalConfigName is where the old format of the global config file
 	// used to be kept
 	oldGlobalConfigName = ".config/efmrl2/secrets.js"
@@ -44,11 +47,16 @@ const (
 	versionCanonURL = iota
 )
 
+// versions of the global config file
+const (
+	// currentGlobalVersion is the version of the global config file that we
+	// write.
+	currentGlobalConfigVersion = globalVersionInitial
+
+	globalVersionInitial = iota
+)
+
 var (
-	baseURL = url.URL{
-		Scheme: "https",
-		Host:   defaultHost,
-	}
 	wantsRewrite = map[string]bool{
 		"index.html": true,
 		"index.htm":  true,
@@ -83,11 +91,26 @@ type Config struct {
 	// characters in the path
 	skipLen int
 
-	// gcfg is a cached value of the global config
-	gcfg OldGlobalConfig
+	//gcfg is a cached value of the global config
+	gcfg *GlobalConfig
+	// oldGCFG is a cached value of the global config
+	oldGCFG OldGlobalConfig
 
 	// ts is an httptest.Server, to override client behaviors
 	ts *httptest.Server
+}
+
+type GlobalConfig struct {
+	Version int `json:"version"`
+
+	// Efmrls is a map from Canonical URL to GlobalEfmrlConfigs
+	Efmrls map[string]*GlobalEfmrlConfig `json:"efmrls,omitempty"`
+}
+
+type GlobalEfmrlConfig struct {
+	Version int `json:"version"`
+
+	Secrets EfmrlSecrets `json:"secrets,omitempty"`
 }
 
 // EfmrlSecrets holds per-efmrl data that we don't want checked in to
@@ -216,6 +239,12 @@ func (cfg *Config) save() error {
 			return fmt.Errorf("cannot save global config: %w", err)
 		}
 	}
+	if cfg.oldGCFG != nil {
+		err = cfg.oldGCFG.save()
+		if err != nil {
+			return fmt.Errorf("cannot save old global config: %w", err)
+		}
+	}
 
 	return nil
 }
@@ -250,6 +279,28 @@ func (cfg *Config) getCanonURL() error {
 	return nil
 }
 
+func (cfg *Config) getGlobalEfmrlConfig() (*GlobalEfmrlConfig, error) {
+	if cfg.CanonURL == "" {
+		return nil, fmt.Errorf("efmrl url is not set")
+	}
+
+	var err error
+	if cfg.gcfg == nil {
+		cfg.gcfg, err = loadGlobalConfig()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	gecfg, ok := cfg.gcfg.Efmrls[cfg.CanonURL]
+	if !ok {
+		gecfg = &GlobalEfmrlConfig{}
+		cfg.gcfg.Efmrls[cfg.CanonURL] = gecfg
+	}
+
+	return gecfg, nil
+}
+
 // getOldGlobalConfig returns the GlobalEfmrlConfig. Efmrl must be set.
 func (cfg *Config) getOldGlobalConfig() (*EfmrlSecrets, error) {
 	if cfg.Efmrl == "" {
@@ -257,20 +308,53 @@ func (cfg *Config) getOldGlobalConfig() (*EfmrlSecrets, error) {
 	}
 
 	var err error
-	if cfg.gcfg == nil {
-		cfg.gcfg, err = loadOldGlobalConfig()
+	if cfg.oldGCFG == nil {
+		cfg.oldGCFG, err = loadOldGlobalConfig()
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	gecfg, ok := cfg.gcfg[cfg.Efmrl]
+	gecfg, ok := cfg.oldGCFG[cfg.Efmrl]
 	if !ok {
 		gecfg = &EfmrlSecrets{}
-		cfg.gcfg[cfg.Efmrl] = gecfg
+		cfg.oldGCFG[cfg.Efmrl] = gecfg
 	}
 
 	return gecfg, nil
+}
+
+func loadGlobalConfig() (*GlobalConfig, error) {
+	fpath, err := globalPath()
+	if err != nil {
+		return nil, err
+	}
+
+	gcfgBytes, err := os.ReadFile(fpath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return &GlobalConfig{}, nil
+		}
+		err = fmt.Errorf(
+			"cannot load global config %q: %w",
+			fpath,
+			err,
+		)
+		return nil, err
+	}
+
+	gcfg := &GlobalConfig{}
+	err = json.Unmarshal(gcfgBytes, gcfg)
+	if err != nil {
+		err = fmt.Errorf(
+			"cannot parse global config %q: %w",
+			fpath,
+			err,
+		)
+		return nil, err
+	}
+
+	return gcfg, nil
 }
 
 func loadOldGlobalConfig() (OldGlobalConfig, error) {
@@ -298,6 +382,43 @@ func loadOldGlobalConfig() (OldGlobalConfig, error) {
 	}
 
 	return *gcfg, nil
+}
+
+func (gcfg GlobalConfig) save() error {
+	fpath, err := globalPath()
+	if err != nil {
+		return err
+	}
+	gcfgBytes, err := json.MarshalIndent(gcfg, "", "    ")
+	if err != nil {
+		return err
+	}
+	gcfgBytes = append(gcfgBytes, '\n')
+
+	_, err = os.Stat(fpath)
+	if os.IsNotExist(err) {
+		dirName := filepath.Dir(fpath)
+		parentName := filepath.Dir(dirName)
+		err = os.MkdirAll(parentName, 0777)
+		if err != nil {
+			return err
+		}
+		err = os.MkdirAll(dirName, 0700)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = os.WriteFile(fpath, gcfgBytes, 0600)
+	if err != nil {
+		return fmt.Errorf(
+			"cannot write global config %q: %w",
+			fpath,
+			err,
+		)
+	}
+
+	return nil
 }
 
 func (gcfg OldGlobalConfig) save() error {
@@ -581,6 +702,17 @@ func (cfg *Config) getTestClient(jar *cookiejar.Jar) (*http.Client, error) {
 	client.Jar = jar
 
 	return client, nil
+}
+
+// globalPath returns the path to the global config file, with the user's
+// home directory prepended.
+func globalPath() (string, error) {
+	home, err := homeDir()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(home, globalConfigName), nil
 }
 
 // oldGlobalPath returns the path to the global config file, with the user's
