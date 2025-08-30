@@ -333,7 +333,9 @@ func loadGlobalConfig() (*GlobalConfig, error) {
 	gcfgBytes, err := os.ReadFile(fpath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return &GlobalConfig{}, nil
+			return &GlobalConfig{
+				Efmrls: make(map[string]*GlobalEfmrlConfig),
+			}, nil
 		}
 		err = fmt.Errorf(
 			"cannot load global config %q: %w",
@@ -352,6 +354,10 @@ func loadGlobalConfig() (*GlobalConfig, error) {
 			err,
 		)
 		return nil, err
+	}
+
+	if gcfg.Efmrls == nil {
+		gcfg.Efmrls = make(map[string]*GlobalEfmrlConfig)
 	}
 
 	return gcfg, nil

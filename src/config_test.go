@@ -281,4 +281,132 @@ func TestConfig(t *testing.T) {
 		require.NotNil(cfg2)
 		assert.Equal(cfg, cfg2)
 	})
+
+	t.Run("global config works", func(t *testing.T) {
+		assert := assert.New(t)
+		require := require.New(t)
+
+		cleanup, err := fakeHome(t)
+		require.NoError(err)
+		defer cleanup()
+
+		canonURL1 := "https://efmrl-test-1.example.com/"
+		cfg := &Config{
+			Version:  currentVersion,
+			Efmrl:    "test-efmrl-1",
+			CanonURL: canonURL1,
+		}
+		err = cfg.prep()
+		require.NoError(err)
+
+		gecfg, err := cfg.getGlobalEfmrlConfig()
+		assert.NoError(err)
+		require.NotNil(gecfg)
+
+		cookie1 := "test-cookie-1"
+		strict1 := "test-strict-1"
+
+		gecfg.Secrets.Cookie = cookie1
+		gecfg.Secrets.StrictCookie = strict1
+		err = cfg.save()
+		assert.NoError(err)
+
+		cfg, err = loadConfig()
+		assert.NoError(err)
+		require.NotNil(cfg)
+		gecfg, err = cfg.getGlobalEfmrlConfig()
+		assert.NoError(err)
+		require.NotNil(gecfg)
+
+		assert.Equal(cookie1, gecfg.Secrets.Cookie)
+		assert.Equal(strict1, gecfg.Secrets.StrictCookie)
+
+		// add a new efmrl to the mix
+		canonURL2 := "https://efmrl-test-2.example.com/"
+		cookie2 := "test-cookie-2"
+		strict2 := "test-strict-2"
+		cfg.Efmrl = "test-efmrl-2"
+		cfg.CanonURL = canonURL2
+		err = cfg.prep()
+		require.NoError(err)
+
+		gecfg, err = cfg.getGlobalEfmrlConfig()
+		assert.NoError(err)
+		require.NotNil(gecfg)
+		gecfg.Secrets.Cookie = cookie2
+		gecfg.Secrets.StrictCookie = strict2
+
+		err = cfg.save()
+		assert.NoError(err)
+
+		cfg, err = loadConfig()
+		assert.NoError(err)
+		require.NotNil(cfg)
+		gecfg, err = cfg.getGlobalEfmrlConfig()
+		assert.NoError(err)
+		require.NotNil(gecfg)
+		assert.Equal(cookie2, gecfg.Secrets.Cookie)
+		assert.Equal(strict2, gecfg.Secrets.StrictCookie)
+
+		cfg.CanonURL = canonURL1
+		err = cfg.prep()
+		require.NoError(err)
+		gecfg, err = cfg.getGlobalEfmrlConfig()
+		assert.NoError(err)
+		require.NotNil(gecfg)
+		assert.Equal(cookie1, gecfg.Secrets.Cookie)
+		assert.Equal(strict1, gecfg.Secrets.StrictCookie)
+	})
+
+	t.Run("global config creates iff ENOENT", func(t *testing.T) {
+		assert := assert.New(t)
+		require := require.New(t)
+
+		cleanup, err := fakeHome(t)
+		require.NoError(err)
+		defer cleanup()
+
+		// getGlobalEfmrlConfig fails if canonURL not set
+		cfg := &Config{
+			Version: currentVersion,
+		}
+		gecfg, err := cfg.getGlobalEfmrlConfig()
+		assert.Error(err)
+		assert.Nil(gecfg)
+
+		canonURL := "https://efmrl-test.example.com/"
+		cfg.CanonURL = canonURL
+		err = cfg.prep()
+		require.NoError(err)
+
+		gecfg, err = cfg.getGlobalEfmrlConfig()
+		assert.NoError(err)
+		require.NotNil(gecfg)
+
+		cookie := "test-cookie"
+		gecfg.Secrets.Cookie = cookie
+
+		err = cfg.save()
+		assert.NoError(err)
+
+		cfg, err = loadConfig()
+		assert.NoError(err)
+		require.NotNil(cfg)
+		gecfg, err = cfg.getGlobalEfmrlConfig()
+		assert.NoError(err)
+		require.NotNil(gecfg)
+		assert.Equal(cookie, gecfg.Secrets.Cookie)
+
+		// set mode to zero, so we will get a permission error
+		fpath, err := globalPath()
+		assert.NoError(err)
+		err = os.Chmod(fpath, 0)
+		assert.NoError(err)
+
+		cfg, err = loadConfig()
+		assert.NoError(err)
+		gecfg, err = cfg.getGlobalEfmrlConfig()
+		assert.Error(err)
+		assert.Nil(gecfg)
+	})
 }
