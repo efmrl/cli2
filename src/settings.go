@@ -118,9 +118,12 @@ func (init *InitCmd) Run(ctx *CLIContext) error {
 		Efmrl:   init.Efmrl,
 		RootDir: init.RootDir,
 	}
-	init.updateConfig(cfg)
+	err := init.updateConfig(cfg)
+	if err != nil {
+		return err
+	}
 
-	err := cfg.save()
+	err = cfg.save()
 	if err != nil {
 		return err
 	}
