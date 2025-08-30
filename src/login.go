@@ -62,7 +62,7 @@ func (dc *DeclareCmd) Run(ctx *CLIContext) error {
 	}
 	cfg.ts = dc.ts
 
-	gecfg, err := cfg.getOldGlobalConfig()
+	gecfg, err := cfg.getGlobalConfig()
 	if err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func (dc *DeclareCmd) Run(ctx *CLIContext) error {
 		return err
 	}
 
-	gecfg.eatAllCookies(client, url)
+	gecfg.Secrets.eatAllCookies(client, url)
 	err = cfg.save()
 	if err != nil {
 		return err
@@ -147,7 +147,7 @@ func (cc *ConfirmCmd) Run(ctx *CLIContext) error {
 	}
 	cfg.ts = cc.ts
 
-	gecfg, err := cfg.getOldGlobalConfig()
+	gecfg, err := cfg.getGlobalConfig()
 	if err != nil {
 		return err
 	}
@@ -207,7 +207,7 @@ func (cc *ConfirmCmd) Run(ctx *CLIContext) error {
 		return err
 	}
 
-	gecfg.eatAllCookies(client, url)
+	gecfg.Secrets.eatAllCookies(client, url)
 	err = cfg.save()
 	if err != nil {
 		return err

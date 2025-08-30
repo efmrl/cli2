@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/http/httptest"
 	"os"
 )
 
@@ -11,6 +12,8 @@ type CommonSet struct {
 	NoRewrite []string `help:"file names not to be rewritten as directories"`
 	BaseHost  string   `kong:"hidden"`
 	Insecure  bool     `kong:"hidden"`
+
+	ts *httptest.Server
 }
 
 // SetCmd holds the options to the "set" subcommand
@@ -114,9 +117,11 @@ func (init *InitCmd) Run(ctx *CLIContext) error {
 	}
 
 	cfg := &Config{
-		Version: currentVersion,
-		Efmrl:   init.Efmrl,
-		RootDir: init.RootDir,
+		Version:  currentVersion,
+		Efmrl:    init.Efmrl,
+		RootDir:  init.RootDir,
+		BaseHost: init.BaseHost,
+		ts:       init.ts,
 	}
 	err := init.updateConfig(cfg)
 	if err != nil {

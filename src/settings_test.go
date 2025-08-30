@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/efmrl/api2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -30,10 +31,17 @@ func TestSettings(t *testing.T) {
 		defer os.Chdir(wd)
 
 		ename := "skunky-joe"
+		canonURL := "http://canon-a-quinn-martin.efmrl.net"
+		md := &api2.GetEfmrlMDRes{
+			CanonicalURL: canonURL,
+			APIPrefix:    "/.e",
+		}
 		init := &InitCmd{
-			CommonSet: CommonSet{},
-			Efmrl:     ename,
-			Force:     true,
+			CommonSet: CommonSet{
+				ts: returnJSONSuccessAny(md),
+			},
+			Efmrl: ename,
+			Force: true,
 		}
 		err = init.Run(ctx)
 		assert.NoError(err)
@@ -54,10 +62,16 @@ func TestSettings(t *testing.T) {
 		os.Remove(configName)
 
 		ename := "smooch-a-pooch"
+		ecanon := "https://belly-dancer.excitement.never"
 		rootDir := "root-y-toot-toot"
+		md := &api2.GetEfmrlMDRes{
+			CanonicalURL: ecanon,
+			APIPrefix:    "/.e",
+		}
 		init := InitCmd{
 			CommonSet: CommonSet{
 				Insecure: true,
+				ts:       returnJSONSuccessAny(md),
 			},
 			Efmrl:   ename,
 			RootDir: rootDir,

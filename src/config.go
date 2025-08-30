@@ -110,7 +110,7 @@ type GlobalConfig struct {
 type GlobalEfmrlConfig struct {
 	Version int `json:"version"`
 
-	Secrets EfmrlSecrets `json:"secrets,omitempty"`
+	Secrets *EfmrlSecrets `json:"secrets,omitempty"`
 }
 
 // EfmrlSecrets holds per-efmrl data that we don't want checked in to
@@ -294,7 +294,34 @@ func (cfg *Config) getGlobalEfmrlConfig() (*GlobalEfmrlConfig, error) {
 
 	gecfg, ok := cfg.gcfg.Efmrls[cfg.CanonURL]
 	if !ok {
-		gecfg = &GlobalEfmrlConfig{}
+		gecfg = &GlobalEfmrlConfig{
+			Secrets: &EfmrlSecrets{},
+		}
+		cfg.gcfg.Efmrls[cfg.CanonURL] = gecfg
+	}
+
+	return gecfg, nil
+}
+
+// getGlobalConfig returns the GlobalEfmrlConfig. CanonURL must be set.
+func (cfg *Config) getGlobalConfig() (*GlobalEfmrlConfig, error) {
+	if cfg.CanonURL == "" {
+		return nil, fmt.Errorf("efmrl URL is not set")
+	}
+
+	var err error
+	if cfg.gcfg == nil {
+		cfg.gcfg, err = loadGlobalConfig()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	gecfg, ok := cfg.gcfg.Efmrls[cfg.CanonURL]
+	if !ok {
+		gecfg = &GlobalEfmrlConfig{
+			Secrets: &EfmrlSecrets{},
+		}
 		cfg.gcfg.Efmrls[cfg.CanonURL] = gecfg
 	}
 
@@ -615,12 +642,10 @@ func getJar(cfg *Config) (*cookiejar.Jar, error) {
 		return nil, err
 	}
 
-	gecfg, err := cfg.getOldGlobalConfig()
-	if err != nil {
-		return nil, err
-	}
+	gecfg, _ := cfg.getGlobalConfig()
+	// ignore errors; this is best effort for now
 
-	if gecfg.Cookie == "" {
+	if gecfg == nil || gecfg.Secrets == nil || gecfg.Secrets.Cookie == "" {
 		return jar, nil
 	}
 
@@ -632,11 +657,11 @@ func getJar(cfg *Config) (*cookiejar.Jar, error) {
 	jar.SetCookies(u, []*http.Cookie{
 		{
 			Name:  api2.SessionCookieName,
-			Value: gecfg.Cookie,
+			Value: gecfg.Secrets.Cookie,
 		},
 		{
 			Name:  api2.StrictCookieName,
-			Value: gecfg.StrictCookie,
+			Value: gecfg.Secrets.StrictCookie,
 		},
 	})
 

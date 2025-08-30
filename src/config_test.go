@@ -46,6 +46,7 @@ func TestConfig(t *testing.T) {
 			Version:  0,
 			Efmrl:    "who-cares",
 			BaseHost: "efmrl.net:8443",
+			CanonURL: "https://fake-stuff.efmrl.net:8443",
 		}
 		err = cfg.save()
 		require.NoError(err)
