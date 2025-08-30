@@ -56,6 +56,11 @@ const (
 	globalVersionInitial = iota
 )
 
+const (
+	currentGlobalEfmrlConfigVersion = globalEfmrlVersionInitial
+	globalEfmrlVersionInitial       = iota
+)
+
 var (
 	wantsRewrite = map[string]bool{
 		"index.html": true,
@@ -295,6 +300,7 @@ func (cfg *Config) getGlobalEfmrlConfig() (*GlobalEfmrlConfig, error) {
 	gecfg, ok := cfg.gcfg.Efmrls[cfg.CanonURL]
 	if !ok {
 		gecfg = &GlobalEfmrlConfig{
+			Version: currentGlobalEfmrlConfigVersion,
 			Secrets: &EfmrlSecrets{},
 		}
 		cfg.gcfg.Efmrls[cfg.CanonURL] = gecfg
@@ -383,11 +389,52 @@ func loadGlobalConfig() (*GlobalConfig, error) {
 		return nil, err
 	}
 
+	err = gcfg.migrate()
+	if err != nil {
+		return nil, err
+	}
+
 	if gcfg.Efmrls == nil {
 		gcfg.Efmrls = make(map[string]*GlobalEfmrlConfig)
 	}
 
 	return gcfg, nil
+}
+
+func (gcfg *GlobalConfig) migrate() error {
+	if gcfg.Version > currentGlobalConfigVersion {
+		return fmt.Errorf(
+			"global config version %v is too new for this binary",
+			gcfg.Version,
+		)
+	}
+
+	if gcfg.Version == 0 {
+		gcfg.Version = currentGlobalConfigVersion
+	}
+
+	for _, gecfg := range gcfg.Efmrls {
+		if err := gecfg.migrate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (gecfg *GlobalEfmrlConfig) migrate() error {
+	if gecfg.Version > currentGlobalEfmrlConfigVersion {
+		return fmt.Errorf(
+			"global efmrl config version %v is too new for this binary",
+			gecfg.Version,
+		)
+	}
+
+	if gecfg.Version == 0 {
+		gecfg.Version = currentGlobalEfmrlConfigVersion
+	}
+
+	return nil
 }
 
 func loadOldGlobalConfig() (OldGlobalConfig, error) {

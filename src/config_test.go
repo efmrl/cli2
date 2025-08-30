@@ -411,3 +411,129 @@ func TestConfig(t *testing.T) {
 		assert.Nil(gecfg)
 	})
 }
+
+func TestGlobalConfigMigrate(t *testing.T) {
+	t.Run("sets version to current if zero", func(t *testing.T) {
+		assert := assert.New(t)
+
+		gcfg := &GlobalConfig{
+			Version: 0,
+			Efmrls:  make(map[string]*GlobalEfmrlConfig),
+		}
+
+		err := gcfg.migrate()
+		assert.NoError(err)
+		assert.Equal(currentGlobalConfigVersion, gcfg.Version)
+	})
+
+	t.Run("errors if version beyond current", func(t *testing.T) {
+		assert := assert.New(t)
+
+		gcfg := &GlobalConfig{
+			Version: currentGlobalConfigVersion + 1,
+			Efmrls:  make(map[string]*GlobalEfmrlConfig),
+		}
+
+		err := gcfg.migrate()
+		assert.Error(err)
+		assert.Contains(err.Error(), "global config version")
+		assert.Contains(err.Error(), "is too new for this binary")
+	})
+
+	t.Run("no change if version is current", func(t *testing.T) {
+		assert := assert.New(t)
+
+		gcfg := &GlobalConfig{
+			Version: currentGlobalConfigVersion,
+			Efmrls:  make(map[string]*GlobalEfmrlConfig),
+		}
+
+		err := gcfg.migrate()
+		assert.NoError(err)
+		assert.Equal(currentGlobalConfigVersion, gcfg.Version)
+	})
+
+	t.Run("migrates child GlobalEfmrlConfig instances", func(t *testing.T) {
+		assert := assert.New(t)
+
+		childConfig := &GlobalEfmrlConfig{
+			Version: 0,
+			Secrets: &EfmrlSecrets{},
+		}
+
+		gcfg := &GlobalConfig{
+			Version: 0,
+			Efmrls: map[string]*GlobalEfmrlConfig{
+				"https://example.com/": childConfig,
+			},
+		}
+
+		err := gcfg.migrate()
+		assert.NoError(err)
+		assert.Equal(currentGlobalConfigVersion, gcfg.Version)
+		assert.Equal(currentGlobalEfmrlConfigVersion, childConfig.Version)
+	})
+
+	t.Run("propagates error from child migration", func(t *testing.T) {
+		assert := assert.New(t)
+
+		childConfig := &GlobalEfmrlConfig{
+			Version: currentGlobalEfmrlConfigVersion + 1,
+			Secrets: &EfmrlSecrets{},
+		}
+
+		gcfg := &GlobalConfig{
+			Version: 0,
+			Efmrls: map[string]*GlobalEfmrlConfig{
+				"https://example.com/": childConfig,
+			},
+		}
+
+		err := gcfg.migrate()
+		assert.Error(err)
+		assert.Contains(err.Error(), "global efmrl config version")
+		assert.Contains(err.Error(), "is too new for this binary")
+	})
+}
+
+func TestGlobalEfmrlConfigMigrate(t *testing.T) {
+	t.Run("sets version to current if zero", func(t *testing.T) {
+		assert := assert.New(t)
+
+		gecfg := &GlobalEfmrlConfig{
+			Version: 0,
+			Secrets: &EfmrlSecrets{},
+		}
+
+		err := gecfg.migrate()
+		assert.NoError(err)
+		assert.Equal(currentGlobalEfmrlConfigVersion, gecfg.Version)
+	})
+
+	t.Run("errors if version beyond current", func(t *testing.T) {
+		assert := assert.New(t)
+
+		gecfg := &GlobalEfmrlConfig{
+			Version: currentGlobalEfmrlConfigVersion + 1,
+			Secrets: &EfmrlSecrets{},
+		}
+
+		err := gecfg.migrate()
+		assert.Error(err)
+		assert.Contains(err.Error(), "global efmrl config version")
+		assert.Contains(err.Error(), "is too new for this binary")
+	})
+
+	t.Run("no change if version is current", func(t *testing.T) {
+		assert := assert.New(t)
+
+		gecfg := &GlobalEfmrlConfig{
+			Version: currentGlobalEfmrlConfigVersion,
+			Secrets: &EfmrlSecrets{},
+		}
+
+		err := gecfg.migrate()
+		assert.NoError(err)
+		assert.Equal(currentGlobalEfmrlConfigVersion, gecfg.Version)
+	})
+}
