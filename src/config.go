@@ -313,6 +313,7 @@ func (cfg *Config) getGlobalConfig() (*GlobalEfmrlConfig, error) {
 	gecfg, ok := cfg.gcfg.Efmrls[cfg.CanonURL]
 	if !ok {
 		gecfg = &GlobalEfmrlConfig{
+			Version: currentGlobalEfmrlConfigVersion,
 			Secrets: &EfmrlSecrets{},
 		}
 		cfg.gcfg.Efmrls[cfg.CanonURL] = gecfg
