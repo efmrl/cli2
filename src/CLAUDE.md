@@ -1,0 +1,1 @@
+- When I say to "bump the version" or "bump the version number", I'm referring to git tags. So that means to add a new git tag with an incremented version number.
