@@ -22,9 +22,6 @@ const (
 	cacheControlHeader = "Cache-Control"
 	defaultCache       = "no-cache"
 	defaultMaxRetries  = 12
-
-	syncDist = iota
-	syncVersion
 )
 
 // SyncCmd holds common parts between "sync" and "version"
@@ -33,12 +30,12 @@ type SyncCmd struct {
 	DryRun       bool `short:"n" help:"show files that would be pushed without pushing them"`
 	Force        bool `short:"f" help:"force sync; don't skip even if file is unchanged"`
 	DeleteOthers bool `short:"D" help:"delete files on server that are not in local directory"`
+	CrossFS      bool `short:"X" help:"cross filesystem mounts within the efmrl"`
 	Debug        bool `help:"add debugging output"`
 	MaxFiles     int  `hidden:""`
 
 	rewriteWarn sync.Once
 	quiet       bool             // copied from Context
-	verbose     bool             // copied from Context
 	debug       bool             // copied from Context
 	ts          *httptest.Server // copied to Config
 }
@@ -67,7 +64,7 @@ func (sync *SyncCmd) Run(ctx *CLIContext) error {
 	cfg.ts = sync.ts
 	seen := seenMap{}
 	if sync.DeleteOthers || !sync.Force {
-		err = setSeenMap(cfg, ctx, seen, sync.MaxFiles)
+		err = setSeenMap(cfg, ctx, seen, sync.MaxFiles, sync.CrossFS)
 		if err != nil {
 			return err
 		}
@@ -221,6 +218,7 @@ func setSeenMap(
 	ctx *CLIContext,
 	seen seenMap,
 	maxFiles int,
+	crossFS bool,
 ) error {
 	// get existing files
 	client, err := cfg.getClient()
@@ -236,7 +234,7 @@ func setSeenMap(
 		req := &api2.ListFilesReq{
 			Continuation: continuation,
 			MaxFiles:     maxFiles,
-			CrossFS:      true,
+			CrossFS:      crossFS,
 		}
 		res, err := postJSON(client, url, req, jres)
 		if err != nil {
