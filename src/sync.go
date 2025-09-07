@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -13,6 +15,7 @@ import (
 	"time"
 
 	"github.com/efmrl/api2"
+	"github.com/fsnotify/fsnotify"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -26,13 +29,15 @@ const (
 
 // SyncCmd holds common parts between "sync" and "version"
 type SyncCmd struct {
-	Parallel     int  `default:"1" short:"p" help:"how many files to upload at once"`
-	DryRun       bool `short:"n" help:"show files that would be pushed without pushing them"`
-	Force        bool `short:"f" help:"force sync; don't skip even if file is unchanged"`
-	DeleteOthers bool `short:"D" help:"delete files on server that are not in local directory"`
-	CrossFS      bool `short:"X" help:"cross filesystem mounts within the efmrl"`
-	Debug        bool `help:"add debugging output"`
-	MaxFiles     int  `hidden:""`
+	Watch        bool          `short:"w" help:"watch for changes and auto-run"`
+	DryRun       bool          `short:"n" help:"show files that would be pushed without pushing them"`
+	Force        bool          `short:"f" help:"force sync; don't skip even if file is unchanged"`
+	DeleteOthers bool          `short:"D" help:"delete files on server that are not in local directory"`
+	CrossFS      bool          `short:"X" help:"cross filesystem mounts within the efmrl"`
+	Debug        bool          `help:"add debugging output"`
+	Parallel     int           `default:"1" short:"p" help:"how many files to upload at once"`
+	WatchWait    time.Duration `default:"1s" help:"duration to wait for changes to finish before syncing"`
+	MaxFiles     int           `hidden:""`
 
 	rewriteWarn sync.Once
 	quiet       bool             // copied from Context
@@ -57,11 +62,80 @@ func (sync *SyncCmd) Run(ctx *CLIContext) error {
 		return nil
 	}
 
-	cfg.skipLen = len(cfg.RootDir) + 1 // +1 for '/' separator
+	if !sync.Watch {
+		return sync.sync(ctx, cfg)
+	}
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		err = fmt.Errorf("cannot watch for changes: %w", err)
+		return err
+	}
+	defer func() {
+		err = watcher.Close()
+		if err != nil {
+			log.Printf("error closing watcher: %v", err)
+		}
+	}()
+	err = filepath.WalkDir(cfg.RootDir, func(
+		path string,
+		d fs.DirEntry,
+		err error,
+	) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			return nil
+		}
+
+		err = watcher.Add(path)
+		if err != nil {
+			err = fmt.Errorf("watcher cannot open %q: %w", path, err)
+			return err
+		}
+
+		return nil
+	})
+
+	again := time.AfterFunc(0, func() {
+		_ = sync.sync(ctx, cfg)
+	})
+watching:
+	for {
+		select {
+		case <-ctx.Context.Done():
+			break watching
+		case err, ok := <-watcher.Errors:
+			log.Printf("watcher error %v ok %v", err, ok)
+			break watching
+		case event, ok := <-watcher.Events:
+			if !ok {
+				break watching
+			}
+			if event.Op.Has(fsnotify.Create) {
+				info, err := os.Lstat(event.Name)
+				if err == nil && info.IsDir() {
+					err = watcher.Add(event.Name)
+					if err != nil {
+						log.Printf("watcher cannot add %q: %v", event.Name, err)
+					}
+				}
+			}
+			_ = again.Reset(sync.WatchWait)
+		}
+	}
+
+	return err
+}
+
+func (sync *SyncCmd) sync(ctx *CLIContext, cfg *Config) error {
 	sync.quiet = ctx.Quiet
-	ctx.Debug = sync.Debug
-	sync.debug = ctx.Debug || sync.Debug
+	ctx.Debug = ctx.Debug || sync.Debug
+	sync.debug = ctx.Debug
+	cfg.skipLen = len(cfg.RootDir) + 1 // +1 for '/' separator
 	cfg.ts = sync.ts
+	var err error
 	seen := seenMap{}
 	if sync.DeleteOthers || !sync.Force {
 		err = setSeenMap(cfg, ctx, seen, sync.MaxFiles, sync.CrossFS)
@@ -96,8 +170,7 @@ func (s *SyncCmd) syncDir(
 		info    os.FileInfo
 	}
 
-	var path string
-	path = cfg.RootDir
+	path := cfg.RootDir
 
 	g, ctx := errgroup.WithContext(context.Background())
 	items := make(chan *workItem)
@@ -287,8 +360,7 @@ func deleteFromSeenMap(
 		return err
 	}
 
-	var cfgCopy Config
-	cfgCopy = *cfg
+	cfgCopy := *cfg
 	cfgCopy.skipLen = 0
 
 	for fname, p := range seen {
@@ -313,7 +385,12 @@ func deleteFromSeenMap(
 		if err != nil {
 			return fmt.Errorf("cannot send delete request: %w", err)
 		}
-		defer res.Body.Close()
+		defer func() {
+			err = res.Body.Close()
+			if err != nil {
+				log.Printf("error closing input file: %v", err)
+			}
+		}()
 
 		if res.StatusCode > 299 {
 			return fmt.Errorf("status %v when deleting %q", res.Status, fname)
