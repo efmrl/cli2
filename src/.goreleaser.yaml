@@ -53,9 +53,6 @@ release:
 
     Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
 
-env_files:
-  github_token: ~/.config/goreleaser/cli2
-
 brews:
 - name: efmrl
   homepage: https://github.com/efmrl/homebrew-cli
