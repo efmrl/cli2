@@ -7,6 +7,12 @@ import (
 	"github.com/alecthomas/kong"
 )
 
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 // CLIContext is for the CLI stuff
 type CLIContext struct {
 	Context context.Context
@@ -16,15 +22,16 @@ type CLIContext struct {
 
 // cli defines the overall CLI
 var cli struct {
-	Hello HelloCmd `cmd:"" help:"say hello world" hidden:""`
-	Init  InitCmd  `cmd:"" help:"init a new working area"`
-	Set   SetCmd   `cmd:"" help:"update settings"`
-	Sync  SyncCmd  `cmd:"" help:"sync working directory to cloud"`
-	Names NamesCmd `cmd:"" help:"efmrl names"`
-	User  UserCmd  `cmd:"" help:"user commands"`
-	Group GroupCmd `cmd:"" help:"group commands"`
-	Login Session  `cmd:"" help:"login commands"`
-	Perms PermsCmd `cmd:"" help:"permissions commands"`
+	Version kong.VersionFlag `help:"print current version and exit"`
+	Hello   HelloCmd         `cmd:"" help:"say hello world" hidden:""`
+	Init    InitCmd          `cmd:"" help:"init a new working area"`
+	Set     SetCmd           `cmd:"" help:"update settings"`
+	Sync    SyncCmd          `cmd:"" help:"sync working directory to cloud"`
+	Names   NamesCmd         `cmd:"" help:"efmrl names"`
+	User    UserCmd          `cmd:"" help:"user commands"`
+	Group   GroupCmd         `cmd:"" help:"group commands"`
+	Login   Session          `cmd:"" help:"login commands"`
+	Perms   PermsCmd         `cmd:"" help:"permissions commands"`
 }
 
 // HelloCmd is for "hello world"
@@ -37,7 +44,11 @@ func (h *HelloCmd) Run(*CLIContext) error {
 }
 
 func main() {
-	ctx := kong.Parse(&cli)
+	ctx := kong.Parse(&cli, kong.Vars{
+		"version": version,
+		"commit":  commit,
+		"date":    date,
+	})
 
 	context := &CLIContext{
 		Context: context.Background(),
