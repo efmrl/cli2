@@ -27,7 +27,7 @@ const (
 	// home directory.
 	globalConfigName = ".config/efmrl2/global_config.js"
 	// defaultHost is used if no hostname is given
-	defaultHost = "efmrl.net:8443"
+	defaultHost = "efmrl.com"
 	// contentTypeBytes is how many bytes max we read
 	// to heuristically determine mime type
 	contentTypeBytes = 512
@@ -119,7 +119,6 @@ type EfmrlSecrets struct {
 	Cookie       string `json:"cookie,omitempty"`
 	StrictCookie string `json:"strict_cookie,omitempty"`
 }
-
 
 func findConfig() (string, string, error) {
 	dpath, err := filepath.Abs(".")
@@ -322,7 +321,6 @@ func (cfg *Config) getGlobalConfig() (*GlobalEfmrlConfig, error) {
 	return gecfg, nil
 }
 
-
 func loadGlobalConfig() (*GlobalConfig, error) {
 	fpath, err := globalPath()
 	if err != nil {
@@ -403,7 +401,6 @@ func (gecfg *GlobalEfmrlConfig) migrate() error {
 	return nil
 }
 
-
 func (gcfg GlobalConfig) save() error {
 	fpath, err := globalPath()
 	if err != nil {
@@ -440,7 +437,6 @@ func (gcfg GlobalConfig) save() error {
 
 	return nil
 }
-
 
 func (cfg *Config) hostPart() string {
 	if cfg.ts != nil {
@@ -695,7 +691,6 @@ func globalPath() (string, error) {
 
 	return filepath.Join(home, globalConfigName), nil
 }
-
 
 func homeDir() (string, error) {
 	home := os.Getenv("HOME")
